@@ -1,0 +1,24 @@
+Images:
+  - png
+  - bmp
+  - jpg
+  - jpeg
+  - svg
+  - ico
+
+Actions:
+  - js
+
+Audios:
+  - mp3
+
+Videos: 
+  - mp4
+
+Styles:
+  - css
+
+Fonts:
+  - eot
+  - ttf
+  - woff

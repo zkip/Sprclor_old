@@ -1,0 +1,13 @@
+~:
+  actions:
+    db.js
+  styles:
+    global.css
+/:
+  views:
+    - index
+  styles:
+    - main.css
+hello:
+  views:
+    - ab

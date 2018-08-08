@@ -2,7 +2,7 @@ class Channel {
     constructor(){
 
     }
-    setSolidTarget(dom){
+    bindSolid(dom){
         let me=this;
         return new Observable.create((observer)=>{
             if(dom instanceof HTMLElement){

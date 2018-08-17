@@ -1,36 +1,17 @@
 class Channel {
-    constructor(){
-
+    // Observable:
+    constructor(sub) {
+        this.sub=sub;
+        this.renderers={};
     }
-    bindSolid(dom){
-        let me=this;
-        return new Observable.create((observer)=>{
-            if(dom instanceof HTMLElement){
-                let toolBox=me.getCurrentToolBox();
-                let tools=toolBox.getTools();
-                observer.next();
-                observer.compelet();
-            }else{
-                observer.error();
-            }
-        });
+    linkRenderer(renderer){
+        this.sub.subscribe(()=>{});
+        this.renderers[renderer.ID]=renderer;
     }
-    // :Tools
-    getTools(){
-
+    unlinkRenderer(ID){
+        delete this.renderers[ID];
     }
-    // :ToolBox
-    getCurrentToolBox(){
-
-    }
-}
-
-class Tools extends Collection {
-    constructor(){
-
-    }
-    // []:Tool
-    getAll(){
-
+    onDestoryed(){
+        
     }
 }

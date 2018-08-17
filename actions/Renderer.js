@@ -1,16 +1,14 @@
 class Renderer {
-    constructor(dom){
-        this.dom=null;
-        this.setElement(dom);
+    bindRenderTarget(d) {
+        this.renderTarget = d;
     }
-    // DOM:
-    setElement(d){
-        this.dom=d;
+    // 绘制实现
+    render() {}
+    // 连接到通道
+    // Channel:
+    connect(ch){}
+}
+class ThreeRenderer extends Renderer {
+    render() {
     }
-    // @override
-    point(){}
-    // @override
-    line(){}
-    // @override
-    face(){}
 }

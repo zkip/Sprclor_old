@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        body,html{
+            height: 100%;
+            width: 100%;
+        }
+        canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+    </style>
+    <script>
+        addEventListener("load",()=>{
+            let cvs=document.querySelector("canvas");
+            cvs.width=innerWidth;
+            cvs.height=innerHeight;
+            let ctx=cvs.getContext("2d");
+            ctx.setTransform(1,0,0,1,0,0);
+            ctx.strokeRect(0,0,120,200);
+            ctx.setTransform(2,0,0,1,0,0);
+            ctx.setTransform(2,0,0,1,0,0);
+            ctx.strokeRect(0,0,120,200);
+            console.log(ctx.getTransform());
+            console.log(ctx);
+        });
+    </script>
+</head>
+<body>
+    <canvas></canvas>
+</body>
+</html>

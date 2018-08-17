@@ -1,1 +1,3 @@
 test: test
+paper: paper
+test_cvs_transform: cvs_transform

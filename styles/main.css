@@ -13,7 +13,7 @@ body,html {
     display: block;
 }
 body {
-    background: rgb(153, 138, 97);
+    background: #91ec1c;
     display: flex;
     flex-direction: column;
 }
@@ -31,6 +31,10 @@ body {
 .main>.work {
     position: relative;
     flex: 1;
+    display: flex;
+    background: #f0f0f0;
+    min-width: 0;
+    overflow: hidden;
 }
 .main>.inspector {
     min-width: 200px;
@@ -62,18 +66,14 @@ body {
     align-items: center;
 }
 .stage {
-    position: absolute;
-    display: block;
+    position: relative;
     left: 0;
     top: 0;
-    /* width: 100%;
-    height: 100%; */
+    flex: 1;
+    min-width: 0;
 }
-.flag {
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    border: 0.1px solid #6877ff;
-    z-index: 99999;
-    box-sizing: border-box;
+
+.stage>svg>*:not(.flag):hover {
+    opacity: 0.6;
+    stroke-width: 5px;
 }

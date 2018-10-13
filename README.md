@@ -1,3 +1,3 @@
 # Sprclor
 
-Precise making your graphic on the web!
+Making your precising graphic on the web!

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <style>
+        .box {
+            width: 30px;
+            height: 30px;
+            background: rgb(1, 75, 160);
+            transition: .1s all;
+        }
+    </style>
+    <script>
+        addEventListener("load", () => {
+            let sw = new SharedWorker("/test/sharedWorker.js?time=" + new Date().getDate());
+            sw.port.start();
+            sw.port.addEventListener("message", (e) => {
+                console.log(e.data);
+            })
+            addEventListener("unload", () => {
+                sw.port.postMessage(0);
+            })
+        });
+
+        class User {
+            constructor() {
+                this.name = "";
+                this.age = 0;
+                this.weight = 0;
+            }
+        }
+
+        class Article {
+            constructor() {
+                this.author = null; // User
+                this.title = "";
+                this.words = 0;
+                this.tags = []; // []str
+                this.content = "";
+            }
+        }
+    </script>
+    <title>Document</title>
+</head>
+
+<body>
+
+    <div class="box"></div>
+</body>
+
+</html>

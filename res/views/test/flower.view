@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="/lib/cvsTestTool.js"></script>
+    <script>
+        addEventListener("load", () => {
+            setup(document.querySelector("canvas"), start);
+        })
+
+        class Flower {
+            constructor(a, b, c) {
+                this.a = a;
+                this.b = b;
+                this.c = c;
+            }
+            draw(ctx, opt, data) {
+                opt = checkOpt({
+                    color: "rgba(120,80,90,0.5)",
+                });
+                let {
+                    dt
+                } = data;
+
+                let {
+                    sin,
+                    cos
+                } = Math;
+                let times = 10;
+
+                let a = this.a.x;
+                let b = this.a.y;
+                let c = this.b.x;
+                let d = this.b.y;
+                let e = this.c.x;
+                let f = this.c.y;
+                ctx.save();
+                ctx.translate(innerWidth / 2, innerHeight / 2);
+                for (let i = 0; i <= times; i++) {
+                    ctx.beginPath();
+                    ctx.rotate(Math.PI * 2 / times);
+                    ctx.moveTo(sin(dt / 100) * a, cos(dt / 60) * a * f/12);
+                    ctx.quadraticCurveTo(this.b.x * i, this.b.y, this.c.x, this.c.y);
+                    ctx.quadraticCurveTo(this.a.x, this.c.y, this.b.x, this.a.y * i);
+                    ctx.quadraticCurveTo(this.a.x * i / 2, Math.sin(this.a.x / this.c.y) * this.c.y, this.a.x, this
+                        .b.y /
+                        this.a.x);
+                    ctx.strokeStyle = opt.color;
+                    ctx.fillStyle = 'rgba(30,120,210,0.2)';
+                    ctx.fill();
+                    ctx.stroke();
+                }
+                // ctx.closePath();
+                ctx.restore();
+            }
+        }
+
+        function start(opt) {
+            let {
+                mpos,
+                render
+            } = opt;
+
+            let p0 = new Point(120, 90);
+            let p1 = new Point(210, 120);
+            let p2 = new Point(100, 140);
+            let ps = [p0, p1, p2];
+            let f = new Flower(...ps);
+
+            addEventListener("mousemove", e => {
+                p0.set(new Vector(mpos).subtract(new Point(innerWidth / 2, innerHeight / 2)));
+            })
+
+            render.add(f);
+        }
+    </script>
+</head>
+
+<body>
+
+    <canvas></canvas>
+</body>
+
+</html>

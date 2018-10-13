@@ -1,0 +1,239 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+
+body,
+html {
+    position: relative;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    user-select: none;
+    overflow: hidden;
+    display: block;
+}
+
+body {
+    background: #91ec1c;
+    display: flex;
+    flex-direction: column;
+}
+
+.Toolbar {
+    position: relative;
+    min-height: 30px;
+    background: #333;
+}
+
+.main {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+}
+
+.main>.Tree {
+    position: relative;
+    flex: 0;
+    min-width: 200px;
+}
+
+.main>.Workspace {
+    position: relative;
+    flex: 1;
+    display: flex;
+    background: #f0f0f0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.main>.Inspector {
+    min-width: 200px;
+    background: #28575e;
+}
+
+.Toolbar {
+    display: flex;
+    flex-direction: row;
+    /* justify-content: center; */
+    align-items: center;
+    color: #687713;
+    height: 30px;
+}
+
+.Toolbar>div {
+    position: relative;
+    width: 30px;
+    height: 30px;
+    overflow: hidden;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+}
+
+.Toolbar>div>div {
+    order: 1;
+}
+
+.Toolbar>div:hover {
+    height: 90px;
+    align-self: end;
+    z-index: 1;
+    box-shadow: 0 1px 3px #333;
+}
+
+.Toolbar>div>div.active {
+    background: rgb(149, 208, 223);
+}
+
+.Toolbar>div:hover {
+    background: rgba(253, 99, 99, 0.705);
+}
+
+.Toolbar>div>div {
+    position: relative;
+    height: 30px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.Toolbar>div>div:hover {
+    background: yellow;
+}
+
+.Toolbar>div.active>div.active {
+    order: 0;
+}
+
+/* .Toolbar>div.active>div.active:nth-child(2) {
+    top: -30px;
+}
+
+.Toolbar>div.active>div.active:nth-child(3) {
+    top: -60px;
+} */
+
+.Layout {
+    display: flex;
+}
+
+.Layout.v {
+    flex-direction: row;
+}
+
+.Layout.h {
+    flex-direction: column;
+}
+
+.Tree {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    position: relative;
+}
+
+.Tree>.Item {
+    display: flex;
+    flex-direction: row;
+    height: 30px;
+    align-content: center;
+    /* justify-content: center; */
+    align-items: center;
+    box-sizing: border-box;
+    border: 1px solid rgba(0, 0, 0, 0);
+    border-left-width: 0;
+    border-right-width: 0;
+    width: 100%;
+    flex-shrink: 0;
+}
+
+.Tree>.Item.draging {
+    position: absolute;
+}
+
+.Tree>.Item.draging {
+    background: rgb(117, 172, 117);
+}
+
+.Tree>.Item.selected {
+    background: red;
+}
+
+.Tree.draging,
+.Tree>.Item.draging * {
+    pointer-events: none;
+}
+
+.Tree>.Item:hover,
+.Tree>.Item.hovered {
+    border-color: #333;
+}
+
+.Tree>.Item.lock>.info>.lock {
+    background: yellow;
+}
+
+.Tree>.Item.hidden>.info>.hidden {
+    background: yellow;
+}
+
+.Tree>.Item>.flag {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.Tree>.Item>.info {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+    align-content: center;
+    align-items: center;
+    justify-content: start;
+    flex-shrink: 0;
+    width: 0;
+}
+
+.Tree>.Item>.info>.name {
+    flex: 1;
+    flex-shrink: 0;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    /* max-width: 120px; */
+}
+
+.Tree>.Item>.info>.lock,
+.Tree>.Item>.info>.hidden {
+    width: 15px;
+    height: 15px;
+    background: red;
+    margin: 5px;
+    border-radius: 50%;
+    display: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-left: 0;
+}
+
+.Tree>.Item:hover>.info>.lock,
+.Tree>.Item:hover>.info>.hidden,
+.Tree>.Item.lock>.info>.lock,
+.Tree>.Item.hidden>.info>.hidden {
+    display: block;
+    visibility: visible !important;
+}
+
+.Tree>.Item.hidden>.info>.lock,
+.Tree>.Item.lock>.info>.hidden {
+    display: block;
+    visibility: hidden;
+}

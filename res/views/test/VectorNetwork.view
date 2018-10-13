@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Vector Network</title>
+    <script src="/lib/loki.min.js"></script>
+    <script src="/lib/cvsTestTool.js"></script>
+    <script src="/lib/paper-full.min.js"></script>
+    <script>
+        setup("canvas", (opt) => {
+            let {
+                mpos,
+                render
+            } = opt;
+            paper.setup(opt.dom);
+
+            paperTest();
+        });
+
+        function paperTest() {
+            let {
+                Point,
+                view,
+                Path,
+                project,
+            } = paper;
+            view.viewSize.set(innerWidth, innerHeight);
+            let p = new Path({
+                strokeColor: 'rgba(120,120,0,0.1)',
+                strokeWidth: 1,
+            });
+            p.moveTo(0, 0);
+            p.lineTo(220, 320);
+
+            addEventListener("mousemove", e => {
+                let hitResult = project.hitTest(new Point(e.clientX, e.clientY), {
+                    segments: true,
+                    stroke: true,
+                    tolerance: 15
+                });
+                if (hitResult) {
+                    p.strokeWidth = 10;
+                } else {
+                    p.strokeWidth = 1;
+                }
+            })
+
+            addEventListener("resize", e => {
+                view.viewSize.set(innerWidth, innerHeight);
+            })
+        }
+
+        class PathP {
+            constructor() {
+
+            }
+        }
+        PathP.data = new Loki();
+    </script>
+</head>
+
+<body>
+    <canvas></canvas>
+</body>
+
+</html>

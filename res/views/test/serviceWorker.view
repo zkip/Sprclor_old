@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script>
+        let p = new Promise((rsv, rej) => {
+            navigator.serviceWorker.register("/test/serviceWorker.js", {
+                scope: "./",
+            }).then(registration => {
+                let sw = registration.installing ||
+                    registration.waiting ||
+                    registration.active;
+                rsv(sw);
+            }).catch(e => {
+                rej(e);
+            })
+        });
+        addEventListener("load", () => {
+            p.then((sw) => {
+                sw.postMessage({
+                    type: "login",
+                    uID: "1001",
+                    pwd: "fj34)f34",
+                    name: "Jackie",
+                });
+                addEventListener("beforeunload", e => {
+                    sw.postMessage(0);
+                })
+                sw.postMessage({
+                    type: "update",
+                    data: "..",
+                })
+            }).catch(e => {
+                console.log(e);
+            });
+        })
+        navigator.serviceWorker.addEventListener("message", (e) => {
+            // update 更新数据源
+
+        });
+
+    </script>
+</head>
+
+<body>
+
+</body>
+
+</html>

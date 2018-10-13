@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Bezier Function</title>
+    <script src="/lib/cvsTestTool.js"></script>
+    <script>
+        addEventListener("load", () => {
+            setup(document.querySelector("canvas"), start);
+        })
+
+        class Curve_Bezier2 {
+            constructor(sp, hp, ep) {
+                this.start = sp || new Point();
+                this.handler = hp || new Point;
+                this.end = ep || new Point();
+            }
+            draw(ctx) {
+                ctx.save();
+                ctx.beginPath();
+                let p0 = this.start;
+                let p1 = this.handler;
+                let p2 = this.end;
+                ctx.moveTo(p0.x, p0.y);
+                ctx.quadraticCurveTo(p1.x, p1.y, p2.x, p2.y);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        class Curve_Bezier3 {
+            constructor(sp, inp, outp, ep) {
+                this.start = sp || new Point();
+                this.handlerIn = inp || new Point;
+                this.handlerOut = outp || new Point;
+                this.end = ep || new Point();
+            }
+            draw(ctx) {
+                ctx.save();
+                ctx.beginPath();
+                let p0 = this.start;
+                let p1 = this.handlerIn;
+                let p2 = this.handlerOut;
+                let p3 = this.end;
+                ctx.moveTo(p0.x, p0.y);
+                ctx.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        class QuadraticFun {
+            constructor(a, b, c) {
+                this.a = a;
+                this.b = b;
+                this.c = c;
+                this.range = [-10, 10];
+            }
+            calc(v) {
+                return this.a * v * v + this.b * v + this.c;
+            }
+            setByBezier(ps) {
+                this.a = 2 * ps[0] + 4 * ps[1] + 2 * ps[2];
+                this.b = -2 * ps[0] + 2 * ps[1];
+                this.c = ps[0];
+            }
+            draw(ctx, opt) {
+                opt = checkOpt({
+                    color: 'red',
+                });
+
+                if (this.range[0] < this.range[1]) {
+                    ctx.save();
+                    ctx.translate(innerWidth / 2, innerHeight / 2);
+                    ctx.beginPath();
+                    let ix = this.range[0];
+                    // ctx.translate(ix, this.calc(ix));
+                    // ctx.moveTo(ix, this.calc(ix));
+                    // console.log(ix);
+                    for (let i = this.range[0]; i <= this.range[1]; i++) {
+                        let x = i;
+                        let y = this.calc(x);
+                        if (i === this.range[0]) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                    ctx.strokeStyle = opt.color;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+        }
+
+        function start(opt) {
+            let {
+                mpos,
+                render
+            } = opt;
+
+            let p0 = new Point(10, 20);
+            let p1 = new Point(210, 40);
+            let p2 = new Point(40, 10);
+            let ps = [p0, p1, p2];
+            let psx = ps.map(v => {
+                return v.x;
+            })
+            let qCv = new Curve_Bezier2(...ps);
+            let psy = ps.map(v => {
+                return v.y;
+            })
+
+            let qf = new QuadraticFun(2, 3, 0);
+
+            render.add(qf);
+            render.add(qCv);
+
+            addEventListener("mousemove", (e => {
+                qf.a = e.clientX / e.clientY;
+                qf.b = e.clientY;
+                p2.set(mpos);
+                qf.setByBezier(ps.map(v => {
+                    return v.x;
+                }));
+            }))
+        }
+    </script>
+</head>
+
+<body>
+    <canvas></canvas>
+</body>
+
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Paper PathItem.Boolean</title>
+    <script src="/lib/paper-full.js"></script>
+    <script>
+        function start(paper) {
+            let {
+                Path,
+                project,
+                Point,
+            } = paper;
+            let p1 = new Path({
+                strokeColor: 'red',
+            });
+            p1.moveTo(120, 200);
+            p1.lineTo(250, 120);
+            p1.cubicCurveTo([20, 80], [500, 200], [21, 190]);
+            var hitOptions = {
+                segments: true,
+                stroke: true,
+                fill: true,
+                tolerance: 5
+            };
+            addEventListener("mousemove", e => {
+                let {
+                    clientX,
+                    clientY
+                } = e;
+                let p = new Point(clientX, clientY);
+                let hitResult = project.hitTest(p, hitOptions);
+                // if (hitResult)
+                    // console.log(hitResult);
+            })
+        }
+        addEventListener("load", () => {
+            let cvs = document.querySelector("canvas");
+            paper.setup(cvs);
+            let {
+                view
+            } = paper;
+            start(paper);
+            let init = () => {
+                cvs.width = innerWidth;
+                cvs.height = innerHeight;
+                cvs.style.position = "absolute";
+                cvs.style.left = "0";
+                cvs.style.top = "0";
+                view.viewSize.set(innerWidth, innerHeight);
+            }
+            init();
+            addEventListener("resize", init);
+        })
+    </script>
+</head>
+
+<body>
+    <canvas></canvas>
+</body>
+
+</html>

@@ -1,11 +1,15 @@
 package main
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+)
 
 var cfg *Config
 
 func main() {
 	cfg = NewConfig("config")
 	cfg.Recovery()
-	http.ListenAndServe(cfg.Server.getAddr(), initRouters())
+	fmt.Printf("Server has runing on %s\n", cfg.Server.getAddr())
+	fmt.Println(http.ListenAndServe(cfg.Server.getAddr(), initRouters()))
 }

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script>
+        let {
+            min,
+            max
+        } = Math;
+        let EPSILON = 1e-10,
+            MAXDEPTH = 64;
+
+
+        FindRoots(w, degree, t, depth) {
+            let i;
+            let leftctps = genArr(6, Point),
+                rightctps = genArr(6, Point),
+                left_count, right_count,
+                left_t = genArr(6, Number),
+                right_t = genArr(6, Number);
+
+            switch (CrossingCount(w, degree)) {
+                case 0:
+                    { /* No solutions here	*/
+                        return 0;
+                    }
+                case 1:
+                    { /* Unique solution	*/
+                        /* Stop recursion when the tree is deep enough	*/
+                        /* if deep enough, return 1 solution at midpoint 	*/
+                        if (depth >= MAXDEPTH) {
+                            t[0] = (w[0].x + w[W_DEGREE].x) / 2.0;
+                            return 1;
+                        }
+                        if (ControlPolygonFlatEnough(w, degree)) {
+                            t[0] = ComputeXIntercept(w, degree);
+                            return 1;
+                        }
+                        break;
+                    }
+            }
+
+            /* Otherwise, solve recursively after	*/
+            /* subdividing control polygon		*/
+            Bezier(w, degree, 0.5, leftctps, rightctps);
+            left_count = FindRoots(leftctps, degree, left_t, depth + 1);
+            right_count = FindRoots(rightctps, degree, right_t, depth + 1);
+
+
+            /* Gather solutions together	*/
+            for (i = 0; i < left_count; i++) {
+                t[i] = left_t[i];
+            }
+            for (i = 0; i < right_count; i++) {
+                t[i + left_count] = right_t[i];
+            }
+
+            /* Send back total number of solutions	*/
+            return (left_count + right_count);
+        }
+
+
+        function SGN(d) {
+            return d < 0 ? -1 : 1;
+        }
+
+        function CrossingCount(cpts, degree) {
+            let n_crossings = 0,
+                sign, old_sign;
+            sign = old_sign = SGN(cpts[0].y);
+            for (let i = 1; i <= degree; i++) {
+                sign = SGN(cpts[i].y);
+                if (sign !== old_sign) n_crossings++;
+                old_sign = sign;
+            }
+            return n_crossings;
+        }
+
+        // []Point,int:bool
+        function controlPolygonFlatEnough(ctps, degree) {
+            let a = ctps[0].y - ctps[degree].y,
+                b = ctps[degree].x - V[0].x,
+                c = ctps[0].x * ctps[degree].y - ctps[degree].x * ctps[0].y,
+                max_distance_above = 0,
+                max_distance_below = 0;
+
+            for (let i = 1; i < degree; i++) {
+                let v = a * ctps[i].x + b * ctps[i].y + c;
+                if (v > max_distance_above) {
+                    max_distance_above = v;
+                } else if (v < max_distance_below) {
+                    max_distance_below = v;
+                }
+            }
+
+            let a1 = 0,
+                b1 = 1,
+                c1 = 0,
+
+                a2 = a,
+                b2 = b,
+                c2 = c - max_distance_above,
+
+                det = a1 * b2 - a2 * b1,
+                dInv = 1 / det,
+
+                intercept_1 = (b1 * c2 - b2 * c1) * dInv;
+
+            c2 = c - max_distance_below;
+            let intercept_2 = (b1 * c2 - b2 * c1) * dInv;
+
+            let left_intercept = min(intercept_1, intercept_2),
+                right_intercept = max(intercept_1, intercept_2);
+
+            let error = right_intercept - left_intercept;
+            return error < EPSILON;
+        }
+
+        function ComputeXIntercept(cpts, degree) {
+            let XLK = 1 - 0,
+                YLK = 0 - 0,
+                XNM = cpts[degree].x - cpts[0].x,
+                YNM = cpts[degree].y - cpts[0].y,
+                XMK = cpts[0].x - 0,
+                YMK = cpts[0].y - 0,
+
+                det = XNM * YLK - YNM * XLK,
+                detInv = 1 / det,
+
+                S = (XNM * YMK - YNM * XMK) * detInv,
+
+                X = 0 + XLK * S;
+            return X;
+        }
+
+        function Bezier(cpts, degree, t, leftps, rightps) {
+            let Vtemp = genArr(6, 6, Point);
+
+            for (let i = 0; i <= degree; i++) {
+                Vtemp[0][i] = cpts[i];
+            }
+
+            for (let i = 0; i <= degree; i++) {
+                for (let j = 0; j <= degree - i; j++) {
+                    Vtemp[i][j].x = (1 - t) * Vtemp[i - 1][j].x + t * Vtemp[i - 1][j + 1].x;
+                    Vtemp[i][j].y = (1 - t) * Vtemp[i - 1][j].y + t * Vtemp[i - 1][j + 1].y;
+                }
+            }
+
+            if (leftps) {
+                for (let i = 0; i <= degree; i++) {
+                    leftps[i] = Vtemp[i][0];
+                }
+            }
+            if (rightps) {
+                for (let i = 0; i <= degree; i++) {
+                    rightps[i] = Vtemp[degree - i][i];
+                }
+            }
+            return Vtemp[degree][0];
+        }
+
+        function genArr(x, y, T) {
+            let arr = new Array(x);
+            for (let i = 0; i < x; i++) {
+                if (y === 0) {
+                    arr[i] = new T();
+                } else {
+                    arr[i] = new Array(y);
+                }
+                for (let j = 0; j < y; j++) {
+                    arr[i][j] = new T();
+                }
+            }
+            return arr;
+        }
+
+        class Point {
+            constructor() {
+                this.x = 0;
+                this.y = 0;
+            }
+        }
+    </script>
+</head>
+
+<body>
+
+</body>
+
+</html>

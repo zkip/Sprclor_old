@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script>
+        let paths = {
+            // 添加新的路径
+            // ...str:str
+            join: (...str) => {
+                let rs = [],
+                    quot = "";
+                let isFR = false;
+                if (str.length > 0) {
+                    for (let i = 0; i < str.length; i++) {
+                        let s = str[i].replace(/(\\|\/)+/g, "/");
+                        let ss = s.split(/\\|\//g);
+                        for (let j = 0; j < ss.length; j++) {
+                            let _s = ss[j];
+                            if (i === 0 && j === 0) {
+                                let f = s.indexOf(":");
+                                if (f < 0) {
+                                    s[0] === "/" && (rs.splice(0, 0, ""), isFR = true);
+                                } else {
+                                    isFR = true;
+                                }
+                            }
+                            if (_s === "..") {
+                                if (!(rs.length === 1 && isFR)) {
+                                    rs.pop();
+                                }
+                            } else if (_s === "." || _s === "") {
+                                continue;
+                            } else {
+                                rs.push(_s);
+                            }
+                        }
+                    }
+                }
+                return rs.join("/");
+            },
+            splitName: (name) => {
+                let f = name.lastIndexOf(".");
+                return [name.slice(0, f), name.slice(f + 1)];
+            },
+            joinName: (name, ext) => {
+                ext = ext.replace(/\.*/g, "");
+                return name + "." + ext;
+            },
+            conv2HTTPfs: (url, src) => {
+                return url + "/read?arg=" + src;
+            },
+        }
+
+        class Paths {
+            constructor(dir) {
+                this.base = join(dir || "");
+            }
+            dir(dir) {
+                return new Paths(dir);
+            }
+            local(src) {
+                let _src = paths.join(this.base, src);
+                return conv2HTTPfs.call(null, localhost, _src);
+            }
+            locals(...srcs) {
+                let me = this;
+                return srcs.map((v, i, arr) => {
+                    return arr[i] = me.local(v);
+                });
+            }
+            _conv2HTTPfs(url) {
+                return url + "/read?arg=" + _src;
+            }
+            // 依次返回相同名称对应后缀名的URI
+            samename(name, ...ext) {
+                let me = this;
+                return ext.map((v, i, arr) => {
+                    return conv2HTTPfs.call(null, localhost, join(me.base, joinName(name, v)));
+                });
+            }
+            // 依次返回相同后缀名对应名称的URI
+            sameext(ext, ...name) {
+                let me = this;
+                return name.map((v, i, arr) => {
+                    return conv2HTTPfs.call(null, localhost, join(me.base, joinName(v, ext)));
+                });
+            }
+        }
+        let localhost = "localhost://:7009";
+    </script>
+    <script>
+        let p = new Paths();
+        let l = p.dir("c:/Game");
+        console.log(l.samename("Hello", "yum", "ump"));
+        console.log(l.sameext("cc", "yum", "ump"));
+    </script>
+</head>
+
+<body>
+    <img src="C:\Users\a\Projects\Sprinkle\filer\bd_logo1.png" alt="">
+</body>
+
+</html>

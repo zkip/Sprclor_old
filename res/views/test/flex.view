@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        .nav {
+            position: relative;
+            width: 100%;
+            height: 50px;
+            display: flex;
+            flex-direction: row;
+            background: rgb(218, 171, 16);
+        }
+
+        .nav>div {
+            display: block;
+            overflow: hidden;
+            height: 100%;
+            flex: 1;
+            transition: all .1s;
+        }
+
+        .nav>div:hover {
+            display: flex;
+            flex-direction: column;
+            height: 300%;
+            background: rgb(228, 152, 12);
+        }
+
+        .nav>div>* {
+            position: relative;
+            display: flex;
+            height: 100%;
+            align-content: center;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .nav>div>*:hover {
+            background: rgb(228, 116, 12);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="nav">
+        <div><a href="#">Home</a></div>
+        <div>
+            <a href="#">About</a>
+            <a href="#">Me</a>
+            <a href="#">My Company</a>
+        </div>
+        <div><a href="#">Concat</a></div>
+        <div><a href="#">Galley</a></div>
+    </div>
+</body>
+
+</html>

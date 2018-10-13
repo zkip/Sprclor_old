@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Test</title>
+    <script src="/lib/loki.min.js"></script>
+    <script>
+        class T {
+            constructor(p, s) {
+                this.point = p;
+                this.segment = s;
+            }
+        }
+        class Point {
+            constructor(x, y) {
+                this.x = x || 0;
+                this.y = y || 0;
+            }
+        }
+        class Segment {
+            constructor(a, b) {
+                this.lkpts = [a, b];
+            }
+        }
+        let lk = new Loki();
+        let m = lk.addCollection("M");
+        test_chain();
+
+        function test_basic() {
+            let p1 = new Point();
+            let p2 = new Point();
+            let p3 = new Point();
+            let p4 = new Point();
+            let s1 = new Segment(p1, p2);
+            let s2 = new Segment(p2, p3);
+            let s3 = new Segment(p1, p4);
+            m.insert(new T(p1, s1));
+            m.insert(new T(p2, s1));
+            m.insert(new T(p2, s2));
+            m.insert(new T(p3, s2));
+            m.insert(new T(p1, s3));
+            m.insert(new T(p4, s3));
+            m.findAndRemove({
+                point: {
+                    "$eq": p1
+                },
+            });
+            console.log(m.find({
+                point: {
+                    "$eq": p1
+                },
+            }));
+        }
+
+        function test_chain() {
+            let p1 = new Point();
+            let p2 = new Point();
+            let p3 = new Point();
+            let p4 = new Point();
+            let s1 = new Segment(p1, p2);
+            let s2 = new Segment(p2, p3);
+            let s3 = new Segment(p1, p4);
+            m.insert(new T(p1, s1));
+            m.insert(new T(p2, s1));
+            m.insert(new T(p2, s2));
+            m.insert(new T(p3, s2));
+            m.insert(new T(p1, s3));
+            m.insert(new T(p4, s3));
+
+            let r1 = m.chain().find({
+                point: {
+                    "$eq": p1,
+                },
+            });
+            r1.remove({
+                point: {
+                    "$eq": p1,
+                },
+            });
+            console.log(m.find());
+            console.log(r1.data());
+        }
+    </script>
+</head>
+
+<body>
+</body>
+
+</html>

@@ -1,0 +1,7 @@
+# Resource
+
+```
+type Resource {
+    set(){}
+}
+```

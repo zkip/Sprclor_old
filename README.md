@@ -1,2 +1,3 @@
-# Sprinkle
-Sprinkle your ideas!
+# Sprclor
+
+Precise making your graphic on the web!

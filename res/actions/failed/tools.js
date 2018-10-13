@@ -126,6 +126,8 @@ Tool.Picker = class extends Tool {
                     let _up = e => {
                         me.state = prevState;
                         this._g.area.visible=false;
+                        this.shape.setSize(new Vec(),new Vec());
+                        this._updateSegments();
                         removeEventListener("mousemove", _move);
                         removeEventListener("mouseup", _up);
                     }

@@ -3,38 +3,39 @@ class Tree {
         let me = this;
         this.dom = d;
         // Index
-        this.__ = {
-            // TreeItem:number
-            ti_idx: new Map(),
-            // TreeItem.item:TreeItem
-            tii_ti: new Map(),
-            // TreeItem.dom:TreeItem
-            tid_ti: new Map(),
-        };
+        // <TreeItem,TreeItem.item,TreeItem.dom>
+        this.__ = new SingleSideIndex();
         // <TreeItem>Selection
         this.items = new SelectionEv().on("add-before", (_, ti, idx) => {
             let bItem = me.items.getByIndex(idx);
             me.dom.insertBefore(ti.dom, bItem && bItem.dom);
         }).on("add-after", (_, ti, idx) => {
-            // 更新索引
-            me.__.tid_ti.set(ti.dom, ti);
-            me.__.tii_ti.set(ti.item, ti);
-            me.__.ti_idx.set(ti, idx);
+            me.__.add([ti, ti.item, ti.dom], idx);
+        }).on("rm-after", (_, ti, idx) => {
+            me.__.rm(ti);
         }).on("move-after", (start, end) => {
             let d = me.dom.querySelector(`.Item:nth-of-type(${start+1})`);
             me.dom.removeChild(d);
             let endD = me.dom.querySelector(`.Item:nth-of-type(${end+1})`);
             me.dom.insertBefore(d, endD);
+            me.__.move(start, end);
         });
 
         // 状态
         // <TreeItem>Selection
-        this.selection = new SelectionEv().on("add-after", (_, ti, idx) => {
+        this.selection = new SelectionEv().on("add-after", (_, ti) => {
             ti.dom.classList.add("selected");
-            // console.log(ti.dom, idx, me.items);
+            ti.item.selected = true;
+            ti.selected = true;
+        }).on("rm-after", (_, ti) => {
+            ti.dom.classList.remove("selected");
+            ti.item.selected = false;
+            ti.selected = false;
         }).on("clear-before", () => {
             me.selection.forEach((_, ti) => {
                 ti.dom.classList.remove("selected");
+                ti.item.selected = false;
+                ti.selected = false;
             });
         })
 
@@ -49,14 +50,19 @@ class Tree {
         let _margin = (c) => {
             __.selectorText = `.Tree>.Item:nth-of-type(${c+1})`;
         }
+
+        let lastSelectIdx = 0;
         this.dom.addEventListener("mousedown", e => {
             for (let i = 0; i < e.path.length; i++) {
-                let item = me.__.tid_ti.get(e.path[i]);
+                let [ti, item, dom] = me.__.get(e.path[i]);
                 if (item) {
                     let len = me.items.len();
+                    let {
+                        ctrlKey,
+                        shiftKey
+                    } = e;
                     if (e.target === item.lock || e.target === item.hidden) return;
-
-                    let rect = item.dom.getBoundingClientRect();
+                    let rect = dom.getBoundingClientRect();
                     let ix = e.clientX,
                         iy = e.clientY,
                         paddingY = 30,
@@ -71,7 +77,7 @@ class Tree {
                             pos = (e.clientY - paddingY) / 30 >> 0;
                             if (_) {
                                 me.dom.classList.add("draging");
-                                item.dom.classList.add("draging");
+                                dom.classList.add("draging");
                                 ___.selectorText = `*`;
                                 _ = false;
                             }
@@ -88,12 +94,35 @@ class Tree {
                             __.selectorText = `_`;
                             ___.selectorText = `_`;
                             me.dom.classList.remove("draging");
-                            item.dom.classList.remove("draging");
+                            dom.classList.remove("draging");
                             if (pos !== start) {
                                 me.items.move(start, pos);
+                                me.selection.clear();
+                                me.selection.append(ti);
+                                lastSelectIdx = pos;
+                            } else {
+                                if (!ctrlKey && !shiftKey) {
+                                    me.selection.clear();
+                                    me.selection.append(ti);
+                                } else if (ctrlKey) {
+                                    if (me.selection.exist(ti)) {
+                                        me.selection.rmByValue(ti);
+                                    } else {
+                                        me.selection.append(ti);
+                                    }
+                                } else if (shiftKey) {
+                                    me.selection.clear();
+                                    let max, min;
+                                    lastSelectIdx > pos ? (max = lastSelectIdx, min = pos) : (max = pos, min = lastSelectIdx);
+                                    for (let i = min; i <= max; i++) {
+                                        let ti = me.items.getByIndex(i);
+                                        me.selection.append(ti);
+                                    }
+                                }
+                                if (!shiftKey) {
+                                    lastSelectIdx = pos;
+                                }
                             }
-                            me.selection.clear();
-                            me.selection.appendOnce(me.items.getByIndex(pos));
                             removeEventListener("mousemove", _move);
                             removeEventListener("mouseup", _up);
                         }
@@ -122,6 +151,7 @@ class TreeItem {
         this._lock = false;
         this._hidden = false;
         this.item = item;
+        this.selected = false;
         this.dom = document.createElement("div");
         this.dom.classList.add("Item");
         let flag = document.createElement("span");
@@ -172,10 +202,10 @@ class TreeItem {
             }
         });
         this.dom.addEventListener("mouseover", e => {
-            me.item.selected = true;
+            me.selected || (me.item.selected = true);
         })
         this.dom.addEventListener("mouseout", e => {
-            me.item.selected = false;
+            !me.selected && (me.item.selected = false);
         })
     }
     setFlag() {

@@ -36,6 +36,11 @@ class Instance {
         this.workspace.objectLayer = objl;
         project.addLayer(oprl);
 
+        this.tree.items.on("move-after", (start, end) => {
+            let len = this.tree.items.len();
+            objl.move(len - start - 1, len - end - 1);
+        })
+
         let oftRect = cvs.getBoundingClientRect();
         let ox = oftRect.left,
             oy = oftRect.top;

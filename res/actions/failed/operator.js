@@ -86,11 +86,23 @@ Path.Operator = class extends Group {
         };
         this.selection = new SelectionEv().on("add-after", (_, item) => {
             item.selected = true;
-            let bounds = me._record.bounds;
-            me._record.bounds = !bounds ? item.bounds : bounds.unite(item.bounds);
+            me._updateBounds();
             me.setPivotM();
             me._updateSegments();
-        }).on("clear-before",()=>{
+            if (!me.visible) {
+                me.visible = true;
+            }
+        }).on("rm-after", (_, item) => {
+            item.selected = false;
+            me._updateBounds();
+            me.setPivotM();
+            me._updateSegments();
+            if (me.selection.len() === 0) {
+                if (me.visible) {
+                    me.visible = false;
+                }
+            }
+        }).on("clear-before", () => {
             me.selection.forEach((_, item) => {
                 item.selected = false;
             })
@@ -119,20 +131,9 @@ Path.Operator = class extends Group {
             this.addChild(rect);
         }
     }
-    select(...items) {
-        let me = this;
-        this.reset();
-        this.visible = true;
-        this.selection.add(...items);
-        this._updateBounds();
-        this.setPivotM();
-        this._updateSegments();
-        return this;
-    }
     _updateBounds() {
         let b = null;
         this.selection.forEach((_, item) => {
-            item.selected = true;
             !b ? (b = item.bounds) : (b = b.unite(item.bounds));
         });
         if (b) {
@@ -142,14 +143,21 @@ Path.Operator = class extends Group {
     }
     save(vec) {
         this.__temp.startVec.set(vec);
-        this.selection.forEach(item => {
+        this.selection.forEach((_, item) => {
             item.applyMatrix = false;
         });
     }
     restore() {
-        this.selection.forEach(item => {
-            item.applyMatrix = true;
-        });
+        let me = this;
+        if (this.selection.len() === 1) {
+            this.selection.forEach((_, item) => {
+                item.vPivot.set(me._record.pivot);
+                let bounds = item.bounds;
+                item.pivot.set(bounds.center.add(item.vPivot));
+                item.applyMatrix = true;
+            });
+        }
+        this.setPivotM();
         // if(){}
         // if (this.items.length === 1) {
         //     let item = this.items[0];
@@ -177,9 +185,6 @@ Path.Operator = class extends Group {
         this.setPivotM();
         this._updateSegments();
         this.visible = false;
-        this.selection.forEach((_, item) => {
-            item.selected = false;
-        });
         return this;
     }
     scaleByCorner(vec) {
@@ -187,7 +192,7 @@ Path.Operator = class extends Group {
             pivot
         } = this._record;
         let iVec = this.__temp.startVec.subtract(pivot);
-        this.selection.forEach(item => {
+        this.selection.forEach((_, item) => {
             let nVec = vec.subtract(pivot);
             let retVec = new Vec();
             let x = iVec.x,
@@ -213,7 +218,7 @@ Path.Operator = class extends Group {
             pivot
         } = this._record;
         let iVec = this.__temp.startVec.subtract(pivot);
-        this.selection.forEach(item => {
+        this.selection.forEach((_, item) => {
             let nVec = vec.subtract(pivot);
             item.rotation = iVec.getDirectedAngle(nVec);
             item.pivot = pivot.clone();
@@ -226,7 +231,7 @@ Path.Operator = class extends Group {
             pivot
         } = this._record;
         let iVec = this.__temp.startVec.subtract(pivot);
-        this.selection.forEach(item => {
+        this.selection.forEach((_, item) => {
             let nVec = vec.subtract(pivot);
             let retVec = new Vec();
             let x = iVec.x,
@@ -260,18 +265,17 @@ Path.Operator = class extends Group {
             pivot
         } = this._record;
         let iVec = this.__temp.startVec;
-        if (this.selection.length === 1) {
-            let item = this.items[0];
+        this.selection.forEach((_, item) => {
             let nVec = pivot.subtract(iVec);
             let pos = vec.add(nVec);
             item.position.set(pos);
             // item.pivot = pivot.clone;
             this._updateBounds();
             this._updateSegments();
-        }
+        })
     }
     setPivotU(vec) {
-        this.selection.forEach(item => {
+        this.selection.forEach((_, item) => {
             item.autoPivot = false;
         });
         this.setPivotM(vec);
@@ -282,7 +286,6 @@ Path.Operator = class extends Group {
             bounds,
             pivot
         } = this._record;
-        // this._record.matrix._transformCoordinates(this.shape._vertex, this.shape._vertex, 4);
         this.shape.setSize(bounds.topLeft, bounds.bottomRight.subtract(bounds.topLeft));
         for (let i = 0; i < 8; i += 2) {
             let x = this.shape._vertex[i],

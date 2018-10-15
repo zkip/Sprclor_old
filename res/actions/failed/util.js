@@ -36,6 +36,41 @@ function getType(o) {
     return o.constructor;
 }
 
+function isRange(arr, idx) {
+    return idx < arr.length && idx > 0;
+}
+
+function isRangeL(arr, idx) {
+    return idx < arr.length && idx >= 0;
+}
+
+function isRangeR(arr, idx) {
+    return idx <= arr.length && idx > 0;
+}
+
+function isRangeB(arr, idx) {
+    return idx <= arr.length && idx >= 0;
+}
+
+Array.prototype.isRange = function (idx) {
+    return isRange(this, idx);
+}
+Array.prototype.isRangeL = function (idx) {
+    return isRangeL(this, idx);
+}
+Array.prototype.isRangeR = function (idx) {
+    return isRangeR(this, idx);
+}
+Array.prototype.isRangeB = function (idx) {
+    return isRangeB(this, idx);
+}
+Array.prototype.lastIdx = function () {
+    return this.length - 1;
+}
+Array.prototype.last = function () {
+    return this[this.length - 1];
+}
+
 let Vec = paper.Point;
 let Matrix = paper.Matrix;
 let Bounds = paper.Rectangle;

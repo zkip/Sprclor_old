@@ -9,6 +9,9 @@ class SingleSideIndex {
         this.k_idx = new Map();
         this.v_idx = new Map();
     }
+    len() {
+        return this.items.length;
+    }
     add(vs, ...idx) {
         let me = this;
         let len = this.items.length;
@@ -71,13 +74,19 @@ class SingleSideIndex {
     }
     // : bool
     exist(vs) {
-        return typeof this.v_idx.get(vs) === "number";
+        let v = this.v_idx.get(vs);
+        return !isUndefined(v);
     }
     existByKey(k) {
-        return typeof this.k_idx.get(k) === "number";
+        let _k = this.k_idx.get(k);
+        return !isUndefined(_k);
     }
     getAll() {
         return this.items;
+    }
+    _changeVVIdx(k, ) {
+        let vi = this.vv_idx.get(k);
+
     }
     _updateIdx(start, end) {
         let items = this.items,
@@ -87,6 +96,8 @@ class SingleSideIndex {
         start > end ?
             (max = start, min = end) :
             (max = end, min = start);
+        max = max >= items.length ? max - 1 : max;
+        min = min < 0 ? 0 : min;
         for (let i = min; i <= max; i++) {
             let vs = items[i];
             vs.forEach(v => {
@@ -102,35 +113,3 @@ class SingleSideIndex {
         this.v_idx = new Map();
     }
 }
-
-class A {}
-class B {}
-class C {}
-class D {}
-
-let idx = new SingleSideIndex();
-let a = new A();
-let b = new B();
-let c = new C();
-let d = new D();
-
-let a2 = new A();
-let c2 = new C();
-idx.add([a, b, c, d]);
-idx.add([a2, c2]);
-idx.add([new B()]);
-idx.add([new B()]);
-idx.move(3, 0);
-idx.add([new B()]);
-idx.add([new B()]);
-// idx.rmByIndex(1);
-// idx.rm(a);
-// console.log(idx);
-// console.log(idx.get(a)); // [a,b,c,d]
-// console.log(idx.get(b)); // [a,b,c,d]
-// console.log(idx.get(c)); // [a,b,c,d]
-// console.log(idx.get(d)); // [a,b,c,d]
-// console.log(idx.existByKey(a));
-// console.log(idx.getAll());
-// console.log(idx.get(d));
-// console.log(idx);

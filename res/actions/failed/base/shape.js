@@ -23,6 +23,12 @@ Shape.Rect = class extends Shape {
         this.sides = sides;
         this._updateVertexFromSides();
     }
+    fromTo(a,b){
+        this.setVertex(0, a.clone());
+        this.setVertex(2, b.clone());
+        this._updateSideFromVertex();
+        return this;
+    }
     setSize(pos, size) {
         this.setVertex(0, pos.clone());
         this.setVertex(2, pos.clone().add(size));

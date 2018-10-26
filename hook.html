@@ -9,47 +9,59 @@
     <link rel="stylesheet" href="/icomoon/main.css">
     <link rel="stylesheet" href="/main.css">
     <script src="/lib/paper-full.min.js"></script>
-    <script src="/failed/paper-patch.js"></script>
-    <script src="/failed/util.js"></script>
-    <script src="/failed/index.js"></script>
-    <script src="/failed/selection.js"></script>
-    <script src="/failed/shape.js"></script>
-    <script src="/failed/path.js"></script>
-    <script src="/failed/group.js"></script>
-    <script src="/failed/instance.js"></script>
-    <script src="/failed/operator.js"></script>
-    <script src="/failed/tree.js"></script>
-    <script src="/failed/tool.js"></script>
+    <script src="/lib/add.js"></script>
+    <script src="/lib/loki.min.js"></script>
+    
+    <!-- base -->
+    <script src="/failed/base/util.js"></script>
+    <script src="/failed/base/base.js"></script>
+    <script src="/failed/base/selection.js"></script>
+    <script src="/failed/base/index.js"></script>
+    <script src="/failed/base/shape.js"></script>
+
+    <!-- gObj -->
+    <script src="/failed/gObj/style.js"></script>
+    <script src="/failed/gObj/path.js"></script>
+    <script src="/failed/gObj/line.js"></script>
+    <script src="/failed/gObj/circle.js"></script>
+    <script src="/failed/gObj/group.js"></script>
+    <script src="/failed/gObj/modifier.js"></script>
+    <script src="/failed/gObj/multiShape.js"></script>
+    <script src="/failed/gObj/rect.js"></script>
+    <script src="/failed/gObj/text.js"></script>
+
+    <!-- patch -->
+    <script src="/failed/patch/paper_group.js"></script>
+
+    <!-- ui -->
+    <script src="/failed/ui/inspector.js"></script>
+    <script src="/failed/ui/toolbar.js"></script>
+    <script src="/failed/ui/tree.js"></script>
+    <script src="/failed/ui/view.js"></script>
+
+    <!-- tools -->
+    <script src="/failed/tools/modifier/mirror.js"></script>
+    <script src="/failed/tools/modifier/rotation.js"></script>
+    <script src="/failed/tools/circle.js"></script>
+    <script src="/failed/tools/line.js"></script>
+    <script src="/failed/tools/multiShape.js"></script>
+    <script src="/failed/tools/operator.js"></script>
+    <script src="/failed/tools/pen.js"></script>
+    <script src="/failed/tools/pencil.js"></script>
     <script src="/failed/tools/picker.js"></script>
-    <script src="/failed/other.js"></script>
+    <script src="/failed/tools/rect.js"></script>
+    <script src="/failed/tools/text.js"></script>
+
+    <script src="/failed/instance.js"></script>
     <script src="/failed/app.js"></script>
 </head>
 
 <body>
     <div class="Toolbar">
-        <div class="picker" title="hello">
-            <div class="picker icon-compass" name="picker"></div>
-        </div>
-        <div class="shape">
-            <div class="line icon-flow-line" name="line"></div>
-            <div class="rect icon-square2" name="rect"></div>
-            <div class="mutiShape icon-star-empty" name="mutiShape"></div>
-        </div>
-        <div class="path">
-            <div class="pen icon-pen" name="pen"></div>
-            <div class="pencil icon-pencil" name="pencil"></div>
-        </div>
-        <div class="text">
-            <div class="text icon-font" name="text"></div>
-        </div>
-        <div class="modifier">
-            <div class="mirror icon-page-break" name="mirror"></div>
-            <div class="rotate icon-redo" name="rotate"></div>
-        </div>
     </div>
     <div class="main">
         <div class="Tree"></div>
-        <div class="Workspace"></div>
+        <div class="View"></div>
         <div class="Inspector"></div>
     </div>
 </body>

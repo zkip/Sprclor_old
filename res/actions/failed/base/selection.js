@@ -89,7 +89,11 @@ class Selection {
     }
     // K : T
     get(k) {
-        let idx = this.k_idx[k];
+        let idx = this.k_idx.get(k);
+        return this.v_items[idx];
+    }
+    getKeyByValue(v) {
+        let idx = this.v_idx.get(v);
         return this.k_items[idx];
     }
     getByIndex(idx) {
@@ -128,6 +132,8 @@ class Selection {
         start > end ?
             (max = start, min = end) :
             (max = end, min = start);
+        max = max >= this.len() ? max - 1 : max;
+        min = min < 0 ? 0 : min;
         for (let i = min; i <= max; i++) {
             this.k_idx.set(this.k_items[i], i);
             this.v_idx.set(this.v_items[i], i);
@@ -225,6 +231,7 @@ class SelectionEv extends Selection {
         return this;
     }
     add(k, v, ...idx) {
+        if (this.exist(v) || this.existByKey(k)) return this;
         if (!(k instanceof Selection)) {
             if (this.et.execute("add-before", k, v, ...idx).getIsPrevent("add-before")) return;
         }
@@ -235,6 +242,7 @@ class SelectionEv extends Selection {
         return ret;
     }
     _rm(k, v, idx) {
+        if (!this.exist(v) && !this.existByKey(k)) return this;
         if (!(k instanceof Selection)) {
             if (this.et.execute("rm-before", k, v, idx).getIsPrevent("rm-before")) return;
         }
@@ -251,15 +259,26 @@ class SelectionEv extends Selection {
         return ret;
     }
     clear() {
+        if (this.len() === 0) return this;
         if (this.et.execute("clear-before").getIsPrevent("clear-before")) return;
         let ret = Selection.prototype.clear.apply(this, arguments);
         return ret;
     }
 }
 
-let sct1 = new Selection();
-sct1.append(1, 2, 3);
-let sct2 = new Selection();
-sct2.append(4, 5, 6);
-sct1.add(sct2);
-console.log(sct1);
+class DomEv extends SelectionEv {
+    constructor(proxy) {
+        super();
+        let me = this;
+        this.proxy = proxy;
+        this.on("add-after", ((_, opt) => {
+            for (let n in opt) {
+                me.proxy.addEventListener(n, opt[n]);
+            }
+        })).on("rm-after", ((_, opt) => {
+            for (let n in opt) {
+                me.proxy.removeEventListener(n, opt[n]);
+            }
+        }));
+    }
+}

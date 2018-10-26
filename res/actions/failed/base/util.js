@@ -70,8 +70,33 @@ Array.prototype.lastIdx = function () {
 Array.prototype.last = function () {
     return this[this.length - 1];
 }
+MouseEvent.prototype.toClientVec = function () {
+    return new Vec(this.clientX, this.clientY);
+}
+
+// 常量值生成器
+// : fn
+function GenConstFn() {
+    let c = '0';
+    return () => {
+        c = add(c, '1');
+        return c;
+    }
+}
+
+// : ConstType
+function GenConst(...attrs) {
+    let o = class {};
+    let _ = GenConstFn();
+    attrs.forEach(v => {
+        o[v] = _();
+    })
+    return o;
+}
+
 
 let Vec = paper.Point;
 let Matrix = paper.Matrix;
 let Bounds = paper.Rectangle;
 let Layer = paper.Layer;
+let Segment = paper.Segment;

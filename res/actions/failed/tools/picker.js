@@ -1,75 +1,52 @@
 Tool.Picker = class extends Tool {
-    constructor(ins) {
-        super("Picker", ins);
-        let me = this;
-        let oprL = me.instance.workspace.oprLayer;
-        let hitOpt = {
-            segments: true,
-            stroke: true,
-            fill: true,
-            tolerance: 5
+    constructor() {
+        super("Picker");
+        this.state = {
+            selecting: false,
+            selected: false,
+            operating: false,
         };
-        let {
-            tree
-        } = this.instance;
         this.hovered = null;
-        this.operator = new Path.Operator();
-        this.operator.strokeColor = "red";
-        this.operator.reset();
-        oprL.addChild(this.operator);
-        this.selection = this.operator.selection;
+        this.operator = new Tool.Operator();
+        this.selection = null;
+        this.shape = new Shape.Rect();
+        this._g = {};
+        this._fn = {};
+    }
+    init() {
+        let me = this,
+            ins = me.getIns(),
+            view = ins.ui.get("view"),
+            tree = ins.ui.get("tree"),
+            operator = this.operator,
+            lopt = UI.View.lopt;
+        operator.setIns(ins);
+        operator.init();
+        this.selection = operator.items;
         this.selection.on("add-after", (_, item) => {
             let [ti] = tree.__.get(item);
             ti && tree.selection.append(ti);
+            me.state.selected = true;
         }).on("rm-after", (_, item) => {
             let [ti] = tree.__.get(item);
             tree.selection.rmByValue(ti);
+            if (me.selection.len() === 0) {
+                me.state.selected = false;
+            }
         }).on("clear-before", () => {
             tree.selection.clear();
+            me.state.selected = false;
         })
-        /*
-        0 nothing
-        1 selecting
-        2 operating
-        */
-        this.state = 0;
-        this._g = {
-            area: new Path({
-                segments: [
-                    [],
-                    [],
-                    [],
-                    []
-                ],
-                closed: true,
-                strokeColor: "red",
-                visible: false,
-                data: {
-                    type: "area",
-                },
-            }),
-        }
-        oprL.addChild(this._g.area);
+        this._initG();
 
-        this.shape = new Shape.Rect();
-        // :item/null
-        let hit = (p) => {
-            let {
-                project,
-                view
-            } = me.instance.paper;
-            hitOpt.tolerance = 5 / view.scaling.x;
-            let hitResult = project.hitTest(view.viewToProject(p[0], p[1]), hitOpt);
-            return hitResult || null;
-        }
         let boundsAction = {
             set: 0x0,
             unite: 0x1,
             reduce: 0x2,
             reverse: 0x3,
         };
-        let _update = (bact, items, relSct) => {
-            let sct = me.operator.selection;
+        let _updateSct = (bact, items, relSct) => {
+            let sct = me.operator.items;
             sct.clear();
             if (bact === boundsAction.set) {
                 sct.append(...items);
@@ -94,159 +71,36 @@ Tool.Picker = class extends Tool {
                 }
             }
         }
-        let _select = (bact, e, relSct) => {
-            me._g.area.visible = true;
-            let bound = me.instance.workspace.dom.getBoundingClientRect();
-            let iP = me.instance.paper.view.
-            viewToProject(e.clientX - bound.left, e.clientY - bound.top);
-            let prevState = me.state;
-            let iCP = new Vec(e.clientX, e.clientY);
-            let noRect = true;
-            let _move = (e) => {
-                me.state = 1;
-                let {
-                    clientX,
-                    clientY
-                } = e;
-                let nCP = new Vec(e.clientX, e.clientY);
-                if (iCP.subtract(nCP).length < 5) {
-                    noRect = true;
-                    return
-                }
-                noRect = false;
-                let p = me.instance.paper.view.
-                viewToProject(clientX - bound.left, clientY - bound.top);
-                me.shape.setSize(iP, p.subtract(iP));
-                me._updateSegments();
-                let items = paper.project.getItems({
-                    overlapping: me.shape.toBounds(),
-                    match: (item) => {
-                        if (item.constructor === Layer) {
-                            return false;
-                        }
-                        if (item.layer === oprL) {
-                            return false;
-                        }
-                        return true;
-                    }
+        let _setPivot = (oprT, index, loctIdx) => {
+            if (me.selection.len() === 1 && !operator._record.autoPivot) {
+                me.selection.forEach((_, item) => {
+                    let bounds = item.bounds;
+                    let p = bounds.center.add(item.vPivot);
+                    operator.setPivotM(p);
                 });
-                _update(bact, items, relSct);
-            }
-            let _up = e => {
-                let p = me.instance.paper.view.
-                viewToProject(e.clientX - bound.left, e.clientY - bound.top);
-                me.state = prevState;
-                me._g.area.visible = false;
-                me.shape.setSize(new Vec(), new Vec());
-                me._updateSegments();
-                if (noRect && bact === boundsAction.set) {
-                    _update(bact, [], relSct);
-                };
-                removeEventListener("mousemove", _move);
-                removeEventListener("mouseup", _up);
-            }
-            addEventListener("mousemove", _move);
-            addEventListener("mouseup", _up);
-        }
-        let _drag = () => {}
-        let _opr = (e) => {
-            let hitRet = hit([e.layerX, e.layerY]);
-            if (!hitRet) return;
-            let item = hitRet.item;
-            let loctIdx = hitRet.location && hitRet.location.index;
-            if (!item) return;
-            if (!(item.parent instanceof Path.Operator)) return;
-            let {
-                data
-            } = item;
-            if (!data) return;
-            let {
-                type,
-                index
-            } = data;
-            let _ = {
-                cornerRotate: "rotateByCorner",
-                cornerScale: "scaleByCorner",
-                sideScale: "scaleBySide",
-                drag: "drag",
-                pivot: "setPivotU",
-            };
-            let oprT = _[type];
-            if (!oprT) return;
-            let ix = e.clientX,
-                iy = e.clientY;
-            let bound = me.instance.workspace.dom.getBoundingClientRect();
-            let iP = me.instance.paper.view.
-            viewToProject(ix - bound.left, iy - bound.top);
-            let operator = me.operator;
-            operator.save(iP);
-            let fn = operator[oprT];
-            me.selection.forEach((_, item) => {
-                if (!item.autoPivot) return;
-                if (oprT === "scaleByCorner")
-                    operator.setPivotM(operator.nextIdx(operator.nextIdx(index)));
-                if (oprT === "rotateByCorner")
-                    operator.setPivotM();
-                if (oprT === "scaleBySide") {
-                    let _ = loctIdx % 2,
-                        _loctIdx = loctIdx,
-                        x = 0,
-                        y = 0;
-                    _ ? (_loctIdx -= 2, y = _loctIdx) : (_loctIdx -= 1, x = -_loctIdx);
-                    operator.setPivotM(x, y);
-                }
-            });
-            let _move = e => {
-                let {
-                    clientX,
-                    clientY
-                } = e;
-                let p = me.instance.paper.view.
-                viewToProject(clientX - bound.left, clientY - bound.top);
-                fn.call(operator, p, loctIdx % 2);
-            };
-            let _up = e => {
-                operator.restore();
-                removeEventListener("mousemove", _move);
-                removeEventListener("mouseup", _up);
-            }
-            addEventListener("mousemove", _move);
-            addEventListener("mouseup", _up);
-        }
-        let {
-            oprLayer,
-            objectLayer
-        } = me.instance.workspace;
-        this.fn = {
-            _move: (e) => {
-                if (me.state !== 0) return;
-                let hitRet = hit([e.layerX, e.layerY]);
-                let item = hitRet && hitRet.item;
-                if (item) {
-                    if (item.layer === oprLayer) return;
-                    if (me.hovered !== item) {
-                        let [ti] = tree.__.get(me.hovered);
-                        me.hovered && !tree.selection.exist(ti) &&
-                            (me.hovered.selected = false);
-                        item.selected = true;
-                        [ti] = this.instance.tree.__.get(item);
-                        this.instance.tree.hover(ti);
-                        me.hovered = item;
-                    }
-                } else {
-                    if (me.hovered) {
-                        let [ti] = tree.__.get(me.hovered);
-                        if (!tree.selection.exist(ti))
-                            me.hovered.selected = false;
-                        me.hovered = null;
-                        me.instance.tree.hover(null);
+            } else {
+                if (operator._record.autoPivot) {
+                    if (oprT === "scaleByCorner")
+                        operator.setPivotM(operator.nextIdx(operator.nextIdx(index)));
+                    if (oprT === "rotateByCorner")
+                        operator.setPivotM();
+                    if (oprT === "scaleBySide") {
+                        let _ = loctIdx % 2,
+                            _loctIdx = loctIdx,
+                            x = 0,
+                            y = 0;
+                        _ ? (_loctIdx -= 2, y = _loctIdx) : (_loctIdx -= 1, x = -_loctIdx);
+                        operator.setPivotM(x, y);
                     }
                 }
-            },
-            _down: e => {
+            }
+        }
+        let lastHitTime = null,
+            lastItem = null,
+            lastHitPos = new Vec();
+        let action = {
+            mousedown: e => {
                 let {
-                    layerX,
-                    layerY,
                     which
                 } = e;
                 let bact = boundsAction.set;
@@ -257,45 +111,235 @@ Tool.Picker = class extends Tool {
                 } else if (e.ctrlKey) {
                     bact = boundsAction.reverse;
                 }
+                let isBact = false;
+                if (bact !== boundsAction.set) isBact = true;
                 if (which === 2) return;
-                let hitRet = hit([layerX, layerY]);
+                let ICP = e.toClientVec();
+                let ICP_W = view.globalToLocal(ICP);
+                let hitRet = view.hit(ICP_W, lopt.obj);
+                let hitRetOpr = view.hit(ICP_W, lopt.opr);
+                let objItem = hitRet && hitRet.item;
+                let oprItem = hitRetOpr && hitRetOpr.item;
                 let relSct = new Selection().set(me.selection);
-                if (hitRet && hitRet.item) {
-                    let item = hitRet.item;
-                    if (item.layer === oprLayer) {
-                        _opr(e);
-                    } else {
-                        _update(bact, [item], relSct);
+
+                let isDragSct = false,
+                    isImediatelyDrag = false,
+                    isOpr = false;
+
+                let loctIdx, oprFn;
+
+                let isMoved = false;
+
+                let _operatorMM = {
+                    cornerRotate: "rotateByCorner",
+                    cornerScale: "scaleByCorner",
+                    sideScale: "scaleBySide",
+                    drag: "drag",
+                    pivot: "setPivotU",
+                };
+
+                let _getOperatorData = (item) => {
+                    if (!item) return;
+                    let data = item.data;
+                    let type = data.type,
+                        sub = data.sub,
+                        oprT = _operatorMM[sub];
+                    if (!isUndefined(type, sub, oprT)) {
+                        if (type === "operator") {
+                            return {
+                                type: sub,
+                                data: data,
+                                oprT: oprT,
+                            }
+                        }
                     }
-                } else {
-                    _select(bact, e, relSct);
                 }
-            },
-        };
-    }
-    onMe() {
-        let me = this;
-        this.instance.workspace.dom.addEventListener("mousedown", this.fn._down);
-        this.instance.workspace.dom.addEventListener("mousemove", this.fn._move);
-        this.instance.workspace.dom.addEventListener("mouseout", () => {
-            if (me.hovered) {
-                me.hovered.selected = false;
-                me.hovered = null;
+                let oprData = _getOperatorData(oprItem);
+
+                /* select mode
+                    + @single           !selected           item(objL):down
+                    + @single_changle   selected            item(another objL):down
+                    + @single_update                        item:[specifyKey down]->item:up
+                    + @rect                                 nil:drag->any:end
+                    + @rect                                 any:[specifyKey drag]->any:end
+                    + @rect                                 any:specifyKey->any:end
+                */
+
+                /* operater mode -Operator>Item-
+                    + @drag     selected    item(Operator.drag):down->any:move->any:up
+                */
+
+                if (objItem && (!oprItem || isBact)) {
+                    if (!me.selection.exist(objItem)) {
+                        isImediatelyDrag = true;
+                    }
+                    _updateSct(bact, [objItem], relSct);
+                }
+                if (!objItem && (!oprItem || !oprData)) {
+                    _updateSct(bact, [], relSct);
+                    isDragSct = true;
+                }
+                let pItem = isImediatelyDrag ? objItem : oprItem;
+                if ((me.state.selected || isImediatelyDrag) && pItem && !isBact) {
+                    let oprT = "drag";
+                    if (oprData) {
+                        loctIdx = hitRetOpr.location && hitRetOpr.location.index;
+                        oprT = oprData.oprT;
+                        _setPivot(oprT, oprData.data.index, loctIdx);
+                    }
+                    if (oprT) {
+                        me.state.operating = true;
+                        operator.record({
+                            startVec: ICP_W,
+                        }).save();
+                        me.state.operating = true;
+                        oprFn = operator[oprT];
+                        isOpr = true;
+                    }
+                }
+
+                let drag = {
+                    mousemove: e => {
+                        let NCP = e.toClientVec();
+                        let NCP_W = view.globalToLocal(NCP);
+                        isMoved = true;
+                        let isNoRect = true;
+                        if (isDragSct && NCP.subtract(ICP).length > 5) {
+                            isNoRect = false;
+                        }
+                        if (isOpr) {
+                            operator.record({
+                                endVec: NCP_W,
+                            });
+                            oprFn.call(operator, loctIdx % 2);
+                        } else {
+                            me._g.area.visible = !isNoRect;
+                            if ((isDragSct || isBact) && !isNoRect) {
+                                let items = view.getItemsByRect(me.shape.fromTo(ICP_W, NCP_W).toBounds());
+                                me._updateSegments();
+                                _updateSct(bact, items, relSct);
+                            }
+                        }
+                    },
+                    mouseup: e => {
+                        let NCP = e.toClientVec();
+                        let NCP_W = view.globalToLocal(NCP);
+                        if (isOpr) {
+                            operator.restore();
+                            me.state.operating = false;
+                        }
+                        if (!isMoved) {
+                            if (me.state.selected && !objItem) {
+                                _updateSct(bact, [], relSct);
+                            } else {
+                                if (objItem) {
+                                    _updateSct(bact, [objItem], relSct);
+                                }
+                            }
+                        } else {
+                            this.shape = new Shape.Rect();
+                            me._g.area.visible = false;
+                        }
+                        me._updateSegments();
+                        domEv.rmByValue(drag);
+                    },
+                }
+                domEv.append(drag);
             }
-            me.instance.tree.hover(null);
+        };
+        let tip = {
+            mousemove: (e) => {
+                let CP = e.toClientVec();
+                let CP_W = view.globalToLocal(CP);
+                let hitRet = view.hit(CP_W, lopt.obj);
+                let item = hitRet && hitRet.item;
+                let isVaild = me.state.operating;
+                if (me.hovered !== item || isVaild) {
+                    if (!item || isVaild) {
+                        if (me.hovered) {
+                            let [ti] = tree.__.get(me.hovered);
+                            if (!tree.selection.exist(ti))
+                                me.hovered.selected = false;
+                            me.hovered = null;
+                            tree.hover(null);
+                        }
+                    } else {
+                        let [ti] = tree.__.get(me.hovered);
+                        me.hovered && !tree.selection.exist(ti) &&
+                            (me.hovered.selected = false);
+                        item.selected = true;
+                        [ti] = tree.__.get(item);
+                        tree.hover(ti);
+                        me.hovered = item;
+                    }
+                }
+            }
+        };
+        let blur = {
+            mouseout: e => {
+                if (me.hovered) {
+                    me.hovered.selected = false;
+                    me.hovered = null;
+                }
+                tree.hover(null);
+            }
+        };
+        this._fn.action = action;
+        this._fn.tip = tip;
+        this._fn.out = blur;
+
+        this.mEvent.add("on", () => {
+            let me = this;
+            me.applyFn();
+            me.operator.reset();
         });
-        this.operator.reset();
-        // this.operator.set(...me.instance.workspace.objectLayer.children);
+        this.mEvent.add("off", () => {
+            let me = this;
+            me.clearFn();
+            me.operator.reset();
+        });
     }
-    offMe() {
-        removeEventListener("mousedown", this.fn._down);
-        console.log(this.name, "has gone.");
+    applyFn() {
+        let ins = this.getIns(),
+            view = ins.ui.get("view");
+        view.domEv.append(this._fn.action);
+        view.domEv.append(this._fn.tip);
+        view.domEv.append(this._fn.blur);
+        return this;
+    }
+    clearFn() {
+        let ins = this.getIns(),
+            view = ins.ui.get("view");
+        view.domEv.rmByValue(this._fn.action);
+        view.domEv.rmByValue(this._fn.tip);
+        view.domEv.rmByValue(this._fn.blur);
+        return this;
     }
     getHoveredItem() {
         return this.hovered;
     }
-    getSelectedItems() {
-        return this.selectedM;
+    _initG() {
+        let ins = this.getIns(),
+            view = ins.ui.get("view"),
+            operator = this.operator,
+            lopt = UI.View.lopt;
+        this._g.area = new Path({
+            segments: [
+                [],
+                [],
+                [],
+                []
+            ],
+            closed: true,
+            strokeColor: "red",
+            strokeScaling: false,
+            visible: false,
+            data: {
+                type: "area",
+                tool: Path.Picker,
+            },
+        });
+        view.addChildren(this._g.area, lopt.opr);
     }
     _updateSegments() {
         for (let i = 0, c = 0; i < 8; i += 2, c++) {

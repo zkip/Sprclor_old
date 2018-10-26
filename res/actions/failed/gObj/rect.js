@@ -3,7 +3,8 @@
         + from p1 to p2
         + center + size
 */
-Path.Rect = class extends Path {
+
+class Rect extends Path {
     constructor(radius) {
         super();
         this._radius = new Vector();
@@ -116,7 +117,7 @@ Path.Rect = class extends Path {
     }
 
 }
-Path.Rect.getSize = (idx, vertex) => {
+Rect.getSize = (idx, vertex) => {
     if (idx === 0) {
         return vertex[0].subtract(vertex[2]);
     } else if (idx === 1) {
@@ -129,3 +130,4 @@ Path.Rect.getSize = (idx, vertex) => {
     let p = vertex[0].subtract(vertex[2]);
     return new Vector(Math.abs(p.x), Math.abs(p.y));
 }
+Path.Rect = Rect;

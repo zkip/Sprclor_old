@@ -1,0 +1,20 @@
+<head>
+    <link rel="stylesheet" href="/testTool/main.css" />
+    <script src="/failed/base/index.js"></script>
+    <script src="/failed/base/selection.js"></script>
+    <script src="/failed/base/util.js"></script>
+    <script src="/testTool.js"></script>
+    <script>
+        addEventListener("load", e => {
+            let body = document.querySelector("body");
+            // let base = NewDom("x-base");
+            let panel = NewDom("x-group");
+            panel.addOn(body);
+            // panel.rmMyself();
+            // let btn = NewDom("x-btn");
+            // btn.addOn(panel);
+
+
+        })
+    </script>
+</head>

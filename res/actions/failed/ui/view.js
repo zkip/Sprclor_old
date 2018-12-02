@@ -1,19 +1,23 @@
 {
     // lopt: Layer Option
-    let lopt = GenConst(
-        'both',
-        'opr',
-        'obj',
-    );
+    let loptM = {
+        both: 0,
+        opr: 1,
+        obj: 2,
+    };
     class View extends UI {
         constructor(d) {
             super("View", d);
             let me = this;
             this.hitOpt = {
-                segments: true,
+                segments: false,
                 stroke: true,
                 fill: true,
-                tolerance: 5
+                tolerance: 5,
+
+                lopt: "obj", // obj/opr/both
+                inner: false, // 是:只选择Fragment，否:只选择GObj
+                isGrouped: true, // 只有当inner为false时才生效。是否把顶层组作为一个整体
             };
             this.mEvent = new MEvent("viewScaling", "frame");
             this._project = null;
@@ -64,18 +68,24 @@
             resize();
             addEventListener("resize", resize);
             dom.addEventListener("wheel", (e) => {
+                // 需要做兼容处理
                 let {
                     deltaY,
                     clientX,
                     clientY
                 } = e;
                 let p = view.viewToProject(clientX - ox, clientY - oy);
-                let v = deltaY / 100;
-                v = v > 5 ? 5 : v;
-                v = v < -5 ? -5 : v;
-
-                view.scale(1 - v * scs[abs(v) - 1] * 0.15, p);
-                me.mEvent.execute("viewScaling", view.scaling.x);
+                let ss = view.scaling.x;
+                if (abs(deltaY) < 100) {
+                    // 精确滚动，如笔记本的触摸板
+                } else {
+                    let v = deltaY / 100 >> 0;
+                    v = v > 5 ? 5 : v;
+                    v = v < -5 ? -5 : v;
+                    ss = 1 - v * scs[abs(v) - 1] * 0.15;
+                    view.scale(ss, p);
+                    me.mEvent.execute("viewScaling", view.scaling.x);
+                }
             })
 
             let isT = false;
@@ -132,40 +142,37 @@
             let bound = this.dom.getBoundingClientRect();
             return this._view.viewToProject(v.subtract([bound.left, bound.top]));
         }
-        // Vec,Workspace.llopt:[]Item/null
-        hit(p, lo, fn) {
-            let hitOpt = this.hitOpt,
+        // Vec UI.View.lopt *fn >> []Item/null
+        hit(p, opt, fn) {
+            let hitOpt = assign(opt || {}, this.hitOpt, "define"),
                 me = this;
             let {
                 _project
             } = this;
-            hitOpt.tolerance = 5 / this._view.scaling.x;
-            let isOpr = false,
-                isObj = true;
-            if (lo === lopt.both) {
-                isOpr = isObj = true;
-            } else if (lo === lopt.opr) {
-                isOpr = true;
-                isObj = false;
-            } else if (lo === lopt.obj) {
-                isObj = true;
-                isOpr = false;
-            }
-            let isFn = typeof fn !== "undefined";
+            hitOpt.tolerance /= this._view.scaling.x;
+            let lo = loptM[hitOpt.lopt];
             hitOpt.match = (item) => {
-                if (isOpr && isObj) return true;
-                if (isOpr && !me._inOprL(item.item)) return false;
-                if (isObj && !me._inObjL(item.item)) return false;
-                if (isFn) return fn(item.item);
+                if (lo === 0) return true;
+                if (lo === 1 && !me._inOprL(item.item)) return false;
+                if (lo === 2 && !me._inObjL(item.item)) return false;
+                if (!isUndefined(fn)) return fn(item.item);
                 return true;
             }
-            return _project.hitTest(p, hitOpt);
+            let ret = _project.hitTest(p, hitOpt);
+            if (!hitOpt.inner && ret && ret.item instanceof Fragment) {
+                ret.item = ret.item.parent;
+                if (hitOpt.isGrouped && ret.item.topParent) {
+                    ret.item = ret.item.topParent;
+                }
+            }
+            return ret;
         }
         // : uint
         size(lo) {
             let layer = this._layer.obj;
-            if (lo === lopt.opr) {
-                layer = this._layer.obj;
+            lo = loptM[lo];
+            if (lo === 1) {
+                layer = this._layer.opr;
             }
             return layer.children.length;
         }
@@ -177,39 +184,35 @@
         insertChildren(idx, items, lo) {
             let layer = this._layer.obj;
             let _items = items.constructor === Array ? items : [items];
-            if (lo === lopt.opr) {
+            lo = loptM[lo];
+            if (lo === 1) {
                 layer = this._layer.opr;
             }
             layer.insertChildren(idx, _items);
             return this;
         }
-        getItemsByRect(rect, lo, fn) {
+        getItemsByRect(rect, opt, fn) {
             let me = this;
-            let isOpr = false,
-                isObj = true;
-            if (lo === lopt.both) {
-                isOpr = isObj = true;
-            } else if (lo === lopt.opr) {
-                isOpr = true;
-                isObj = false;
-            } else if (lo === lopt.obj) {
-                isObj = true;
-                isOpr = false;
-            }
-            let isFn = typeof fn !== "undefined";
-            return this._project.getItems({
+            let hitOpt = assign(opt || {}, this.hitOpt, "define");
+            let lo = loptM[hitOpt.lopt];
+            let ret = this._project.getItems({
                 overlapping: rect,
                 match: (item) => {
-                    if (item.constructor === Layer) {
-                        return false;
+                    if (me.hitOpt.inner) {
+                        if (!(item instanceof Fragment)) return false;
+                    } else {
+                        if (!(item instanceof Path)) return false;
                     }
-                    if (isOpr && isObj) return true;
-                    if (isOpr && !me._inOprL(item)) return false;
-                    if (isObj && !me._inObjL(item)) return false;
-                    if (isFn) return fn(item);
+                    if (lo === 0) return true;
+                    if (lo === 1 && !me._inOprL(item)) return false;
+                    if (lo === 2 && !me._inObjL(item)) return false;
+                    if (!isUndefined(fn)) return fn(item);
                     return true;
                 }
-            });
+            }).map(v => {
+                return (hitOpt.isGrouped && v.topParent) ? v.topParent : v;
+            })
+            return ret;
         }
         // : this
         move(start, end, lo) {
@@ -220,16 +223,18 @@
             layer.move(start, end);
             return this;
         }
+        getChildren(){
+            return this._layer.obj.children;
+        }
         _inOprL(item) {
             return item.layer === this._layer.opr;
         }
         _inObjL(item) {
             return item.layer === this._layer.obj;
         }
-        getScale() {
+        getScaling() {
             return this._view.scaling.x;
         }
     }
-    View.lopt = lopt;
     UI.View = View;
 }

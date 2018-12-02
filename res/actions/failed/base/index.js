@@ -113,3 +113,97 @@ class SingleSideIndex {
         this.v_idx = new Map();
     }
 }
+
+// tag索引
+class TagIdx {
+    constructor() {
+        let me = this;
+        let _vm = new Map(); // Tag : M
+        let _tm = new Map(); // V : M
+        assign(this, {
+            put(v, ...tags) {
+                tags.forEach(tag => {
+                    let tm = _tm.get(v);
+                    if (!tm) {
+                        tm = new Map();
+                        _tm.set(v, tm);
+                    }
+                    if (!tm.get(tag)) {
+                        let vm = _vm.get(tag);
+                        if (!vm) {
+                            vm = new Map();
+                            _vm.set(tag, vm);
+                        }
+                        vm.set(v, true);
+                        tm.set(tag, v);
+                    }
+                });
+                return me;
+            },
+            is(v, tag) {
+                let ret = false;
+                let m = _vm.get(tag);
+                if (m) {
+                    if (m.get(v)) {
+                        ret = true;
+                    }
+                }
+                return ret;
+            },
+            get(v, fn) {
+                let ret = _tm.get(v);
+                ret && fn && ret.forEach(fn);
+                return ret;
+            },
+            or(v, ...tags) {
+                let ret = false;
+                let found = false;
+                tags.forEach(tag => {
+                    if (found)
+                        return;
+                    if (me.is(v, tag)) {
+                        ret = true;
+                        found = true;
+                    }
+                })
+                return ret;
+            },
+            rm(v, ...tags) {
+                tags.forEach(tag => {
+                    let vm = _vm.get(tag);
+                    if (vm) {
+                        vm.delete(v);
+                    }
+                    let tm = _tm.get(v);
+                    if (tm) {
+                        tm.delete(tag);
+                    }
+                    if (vm.size === 0) {
+                        _vm.delete(tag);
+                    }
+                    if (tm.size === 0) {
+                        _tm.delete(v);
+                    }
+                })
+                return me;
+            },
+            clear(v) {
+                let tm = _tm.get(v);
+                if (tm) {
+                    tm.forEach((_, tag) => {
+                        let vm = _vm.get(tag);
+                        vm.delete(v);
+                        tm.delete(tag);
+                        if (vm.size === 0) {
+                            _vm.delete(tag);
+                        }
+                    });
+                    if (tm.size === 0) {
+                        _tm.delete(v);
+                    }
+                }
+                return me;
+            },
+        })
+    }
+}

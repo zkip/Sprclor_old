@@ -127,6 +127,7 @@
         select(opt) {
             let me = this;
             let ret = this.children.find(opt);
+            if (!ret.length) return this;
             let v = ret[0];
             if (me._lastRet && me._lastRet.tool === v.tool) return;
             let _ret = me.group.chain().find({
@@ -151,6 +152,7 @@
             v.dom.classList.add("active");
             v.groupDom.classList.add("active");
             me._lastRet = ret[0];
+            return this;
         }
     }
 

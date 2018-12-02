@@ -1,0 +1,12 @@
+<script src="/lib/buckets.min.js"></script>
+<script>
+    function start() {
+        let m=new buckets.MultiDictionary();
+        let k={};
+        m.set({name: "f"},1);
+        m.set(k,2);
+        console.log(m.get({name: "f"}));
+        console.log(m);
+    }
+    addEventListener("load", start);
+</script>

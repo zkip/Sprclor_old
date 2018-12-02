@@ -1,24 +1,115 @@
-function assign(target, ops, ...keys) {
-    if (typeof target === "function") {
-        if (typeof ops === "function") {
-            assign(target.prototype, ops.prototype, Object.getOwnPropertyNames(ops.prototype));
-        } else {
-            assign(target.prototype, ops);
-        }
-    } else {
-        if (keys.length > 0) {
-            for (let i = 0; i < keys[0].length; i++) {
-                let k = keys[0][i];
-                if (k === "constructor") continue;
-                target[k] = ops[k];
+class Interfacer {
+    constructor(opt) {
+        if (typeof opt != "object") console.error("Param 'opt' must be 'object'.");
+        this.get = () => opt;
+    }
+    is(obj) {
+        if (typeof obj !== "object") {
+            console.error(`Must 'object', give ${typeof obj}`);
+            return false
+        };
+        let opt = this.get();
+        for (let k in opt) {
+            let o = obj[k];
+            let tTyp = opt[k];
+            let typ = typeof o;
+            if (typ === "undefined") {
+                console.error(`Haven't ${tTyp} ${k}`);
+                return false;
+            } else if (typ === tTyp || typ === "object") {
+                if (typeof tTyp === "function" || tTyp === Array) {
+                    let cstor = o.constructor,
+                        cstorT = tTyp;
+                    if (cstor === cstorT) return true
+                    else {
+                        console.log(cstor, o);
+                        console.error(`Must ${k} Type ${cstorT.name}, give ${k} Type ${cstor.name}`);
+                        return false
+                    };
+                } else {
+                    return true;
+                }
+            } else {
+                console.error(`Must Type ${tTyp.name}, give Type ${typ}`);
+                return false;
             }
+        }
+    }
+}
+
+function interface(opt) {
+    let inter = new Interfacer(opt);
+    return inter;
+}
+/*
+    ignoreOpt:
+        + empty                 强制覆盖
+        + list M<str,bool>      列表中的值会被忽略
+        + 'define'              定义模式，当target有定义时将会忽略
+        + 'give'                赋值模式，当target没有定义时忽略
+        + 'extend'              继承模式，当target本身（而非原型链上）有定义时会被忽略
+*/
+{
+    let _ = {
+        define: 3,
+        give: 4,
+        extend: 5,
+    };
+    let _checkMode = (ignoreOpt) => {
+        let typ = typeof ignoreOpt;
+        if (typ === "object") {
+            return 2;
+        } else if (typ === "string") {
+            let ret = _[ignoreOpt];
+            if (ret) return ret;
         } else {
-            for (let k in ops) {
-                if (k === "constructor") continue;
-                target[k] = ops[k];
+            if (!ignoreOpt) return 1;
+        }
+        return 0;
+    }
+    let _has = Reflect.has;
+
+    function assign(target, ops, ignoreOpt) {
+        let _ = (target, ops, ...keys) => {
+            if (typeof target === "function") {
+                if (typeof ops === "function") {
+                    _(target.prototype, ops.prototype, Object.getOwnPropertyNames(ops.prototype));
+                } else {
+                    _(target.prototype, ops);
+                }
+            } else {
+                let mode = _checkMode(ignoreOpt);
+                if (keys.length === 0)
+                    keys = [Object.keys(ops)];
+                for (let i = 0; i < keys[0].length; i++) {
+                    let k = keys[0][i];
+                    if (k === "constructor") continue;
+                    // if (!ignoreOpt || !Reflect.has(ignoreOpt, k))
+                    if (mode === 1) {
+                        target[k] = ops[k];
+                    } else if (mode === 2) {
+                        if (!_has(ignoreOpt, k)) {
+                            target[k] = ops[k];
+                        }
+                    } else if (mode === 3) {
+                        if (!_has(target, k)) {
+                            target[k] = ops[k];
+                        }
+                    } else if (mode === 4) {
+                        if (_has(target, k)) {
+                            target[k] = ops[k];
+                        }
+                    } else if (mode === 5) {
+                        if (!target.hasOwnProperty(k)) {
+                            target[k] = ops[k];
+                        }
+                        // console.log(target,k,target.hasOwnProperty(k));
+                    }
+                }
+                return target;
             }
         }
-        return target;
+        return _(target, ops);
     }
 }
 
@@ -52,6 +143,13 @@ function isRangeB(arr, idx) {
     return idx <= arr.length && idx >= 0;
 }
 
+Map.prototype.first = function () {
+    return this.values().next().value;
+}
+Map.prototype.firstKey = function () {
+    return this.keys().next().value;
+}
+
 Array.prototype.isRange = function (idx) {
     return isRange(this, idx);
 }
@@ -70,6 +168,9 @@ Array.prototype.lastIdx = function () {
 Array.prototype.last = function () {
     return this[this.length - 1];
 }
+Array.prototype.clone = function () {
+    return this.filter(() => true);
+}
 MouseEvent.prototype.toClientVec = function () {
     return new Vec(this.clientX, this.clientY);
 }
@@ -86,17 +187,10 @@ function GenConstFn() {
 
 // : ConstType
 function GenConst(...attrs) {
-    let o = class {};
+    let o = {};
     let _ = GenConstFn();
     attrs.forEach(v => {
         o[v] = _();
     })
     return o;
 }
-
-
-let Vec = paper.Point;
-let Matrix = paper.Matrix;
-let Bounds = paper.Rectangle;
-let Layer = paper.Layer;
-let Segment = paper.Segment;

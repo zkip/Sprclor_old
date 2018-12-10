@@ -7,11 +7,13 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link rel="stylesheet" href="/demos/Card/main.css">
     <link rel="stylesheet" href="/demos/Card/Card.css">
+    <script src="/demos/Card/main.js"></script>
     <title>Document</title>
 </head>
 
 <body>
-    <div class="Card">
+    <div class="Card flip">
+        Hello
         <div class=""></div>
     </div>
 </body>

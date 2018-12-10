@@ -1,0 +1,38 @@
+<z-card data=Card>
+    <span .title tx=Card.name>{tx}</span>
+    <z-timeShow .background data=Card.imgs />
+    <z-info>
+        <z-icon .flag link=icomoon.GoodsType which=Card.type />
+        <span .brand tx=Card.shortBrandName></span>
+        <div .main>
+            <div .quickOpration>
+                <z-btn sub=img link=icons.shoppingCart>添加</z-btn>
+                <z-btn sub=img link=icons.collecting>收藏</z-btn>
+                <z-btn sub=img link=icons.tip_circle>详情</z-btn>
+            </div>
+            <div .info>
+                <div .main>
+                    <span .main tx=Card.desc.main></span>
+                    <span .sub tx=Card.desc.sub></span>
+                </div>
+                <div .others>
+                    <z-iter data=Card.desc.others>
+                        <span tx=v></span>
+                    </z-iter>
+                </div>
+                <div .badges>
+                    <z-iter data=Card.badges>
+                        <z-icon link=icons.ShopBadge which=v></span>
+                    </z-iter>
+                </div>
+                <div .footer>
+                    <div .price>
+                        <z-tx .cur sub=img link=icomoon.currency tx=Card.price.cur></z-tx>
+                        <span .origin tx=Card.price.origin></span>
+                    </div>
+                    <z-rank .rank data=Card.rank />
+                </div>
+            </div>
+        </div>
+    </z-info>
+</z-card>

@@ -223,8 +223,12 @@
             layer.move(start, end);
             return this;
         }
-        getChildren(){
+        getChildren() {
             return this._layer.obj.children;
+        }
+        lookAtOrigin() {
+            this._view.translate(this._view.center);
+            return this;
         }
         _inOprL(item) {
             return item.layer === this._layer.opr;

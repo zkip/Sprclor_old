@@ -114,7 +114,12 @@ class SingleSideIndex {
     }
 }
 
-// tag索引
+/* Tag Index
+    A:(B,C,D,E)
+    B:(A,C,D,E)
+    C:(D,A)
+    E:(A)
+*/
 class TagIdx {
     constructor() {
         let me = this;

@@ -79,19 +79,23 @@
                     let relSct = new Selection().set(me.selection);
                     let isMoved = false,
                         isDragSct = false;
+                    let isGrouped = true;
                     if (e.shiftKey) {
                         bact = boundsAction.unite;
                     } else if (e.altKey) {
                         bact = boundsAction.reduce;
                     } else if (e.ctrlKey) {
                         bact = boundsAction.reverse;
+                        isGrouped = false;
                     }
                     let isBact = false;
                     if (bact !== boundsAction.set) isBact = true;
                     if (which === 2) return;
                     let ICP = e.toClientVec();
                     let ICP_W = view.globalToLocal(ICP);
-                    let hitRet = view.hit(ICP_W);
+                    let hitRet = view.hit(ICP_W,{
+                        isGrouped: isGrouped,
+                    });
                     let hitRetOpr = view.hit(ICP_W, {
                         lopt: "opr",
                         isGrouped: false,
@@ -99,21 +103,6 @@
                     let objItem = hitRet && hitRet.item;
                     let oprItem = hitRetOpr && hitRetOpr.item;
 
-                    // console.log(me.operator.getGuidesData(oprItem));
-                    let _isOperatorItem = (item) => {
-                        if (!item) return;
-                        let data = item.data;
-                        let type = data.type,
-                            sub = data.sub;
-                        if (!isUndefined(type, sub)) {
-                            if (type === "operator") {
-                                return {
-                                    type: sub,
-                                    data: data,
-                                }
-                            }
-                        }
-                    }
                     let data = me.operator.getGuidesData(oprItem);
                     let isOperatorItem = !!data;
 
@@ -128,7 +117,7 @@
                         start: ICP_W,
                         guidesData: isOperatorItem ? data : {},
                         hitRetOpr: hitRetOpr,
-                    });
+                    }).recordMps();
                     let drag = {
                         mousemove: e => {
                             let NCP = e.toClientVec();
@@ -181,7 +170,9 @@
                 mousemove: (e) => {
                     let CP = e.toClientVec();
                     let CP_W = view.globalToLocal(CP);
-                    let hitRet = view.hit(CP_W);
+                    let hitRet = view.hit(CP_W,{
+                        isGrouped: !e.ctrlKey,
+                    });
                     let item = hitRet && hitRet.item;
                     let isVaild = me.state.operating;
                     if (me.hovered !== item || isVaild) {
@@ -244,6 +235,9 @@
                 strokeColor: "red",
             })
             root.addChild(area);
+            root.style.set({
+                strokeScaling: false,
+            })
             this.setGuidesData(area, "area");
         }
         _updateSegments() {

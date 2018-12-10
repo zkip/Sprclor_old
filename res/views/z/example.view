@@ -1,0 +1,4 @@
+<!-- 循环 -->
+<z-iter data=CardList v=card> 
+    <z-card data=card></z-card>
+</z-iter>

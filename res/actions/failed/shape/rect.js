@@ -1,61 +1,75 @@
 {
     class Rect extends Shape {
-        constructor(a, b) {
-            super(4);
+        constructor(radius) {
+            super();
             assign(this, {
-                _sides: new Array(4),
-                center: new Vec(),
-                size: new Vec(),
-                radius: new Vec(),
-            })
-            a && b && (this.fromTo(a, b));
-        }
-        setCenter(v) {
-            this.center.set(v);
-            this._updateByCenter();
-            return this;
+                sides: new Array(4),
+                size: new Vec,
+                radius: new Vec,
+                center: new Vec,
+            });
+            this.byCount(1);
+            this.getByIdx(0).byCount(4);
+            radius && this.setRadius(radius);
         }
         setSide(idx, side) {
-            this._sides[idx] = side;
+            this.sides[idx] = side;
             this._updateBySide(idx);
             this._updateAttr();
+            this._update();
             return this;
         }
         setSides(sides) {
-            this._sides = sides;
+            this.sides = sides;
             this._updateBySides();
             this._updateAttr();
+            this._update();
             return this;
         }
         fromTo(a, b) {
-            this.setSub(0, a);
-            this.setSub(2, b);
+            this._setCorner(0, a);
+            this._setCorner(2, b);
             this._updateByFromTo();
+            this._update();
             return this;
         }
         setRadius(v) {
             this.radius.set(v);
             this.size.set(this.radius.multiply(2));
-            this._updateByCenter();
+            this._updateByRadius();
+            this._update();
             return this;
         }
         setSize(size) {
             this.size.set(size);
             this.radius.set(size.divide(2));
-            this._updateByCenter();
+            this._updateByRadius();
+            this._update();
             return this;
         }
-        setCorner(idx, v) {
+        _setCorner(idx, v) {
             let start = idx * 2,
                 _ = idx % 2 ? 0 : 1,
+                cr = ["x", "y"],
                 ps = [v.x, v.y];
-            this._vertex[start] = v.x;
-            this._vertex[start + 1] = v.y;
-            this._vertex[this.nextIdx(idx) * 2 + _] = ps[_];
-            this._vertex[this.prevIdx(idx) * 2 + 1 - _] = ps[1 - _];
+            let frag = this.getByIdx(0);
+            frag._setCtrl(idx, v);
+            frag._setCtrl(frag.nextIdx(idx), {
+                [cr[_]]: ps[_]
+            });
+            frag._setCtrl(frag.prevIdx(idx), {
+                [cr[1 - _]]: ps[1 - _]
+            });
+        }
+        setCorner(idx, v) {
+            this._setCorner(idx, v);
             this._updateAttr(idx);
             this._updateSideFromVertex();
+            this._update();
             return this;
+        }
+        getCorner(idx){
+            return this.getByIdx(0).getEnd(idx);
         }
         nextIdx(idx) {
             return idx + 1 > 3 ? 0 : idx + 1;
@@ -73,10 +87,7 @@
             return new Bounds(this.getVertex(0), this.getVertex(2));
         }
         getSide(idx) {
-            return this._sides[idx];
-        }
-        getCenter() {
-            return this.center;
+            return this.sides[idx];
         }
         getSize() {
             return this.size;
@@ -91,44 +102,48 @@
             return this.radius;
         }
         _updateAttr(idx) {
-            let [a] = this.getVertex(0),
-                [b] = this.getVertex(2);
+            let frag = this.getByIdx(0),
+                a = frag.getEnd(0),
+                b = frag.getEnd(2);
             let size = b.subtract(a);
             let radius = size.divide(2);
-            this.center.set(a.add(radius));
             this.size.set(size);
             this.radius.set(radius);
-            return this;
-        }
-        _updateByFromTo() {
-            let [a] = this.getVertex(0),
-                [b] = this.getVertex(2);
-            this.setCorner(1, new Vec(b.x, a.y));
-            this.setCorner(3, new Vec(a.x, b.y));
-            this._updateAttr();
-            this._updateSideFromVertex();
             return this;
         }
         _updateBySide(idx) {
             let start = idx * 2,
                 _ = idx % 2 ? 0 : 1,
-                _idx = start + _,
-                side = this._sides[idx];
-            let main = this.getSub("main");
-            main[_idx] = side;
-            main[this.nextIdx(idx) * 2 + _] = side;
+                cr = ["x", "y"],
+                side = this.sides[idx];
+            let frag = this.getByIdx(0);
+            frag._setCtrl(idx, {
+                [cr[_]]: side
+            });
+            frag._setCtrl(this.nextIdx(idx), {
+                [cr[_]]: side
+            });
             return this;
         }
-        _updateByCenter() {
+        _updateByRadius() {
             let radius = this.radius;
-            let center = this.center;
-            // vertex
-            this.setCorner(0, center.add(radius.multiply(-1)));
-            this.setCorner(1, center.add(radius.multiply(1, -1)));
-            this.setCorner(2, center.add(radius));
-            this.setCorner(3, center.add(radius.multiply(-1, 1)));
+            this._setCorner(0, radius.multiply(-1));
+            this._setCorner(1, radius.multiply(1, -1));
+            this._setCorner(2, radius);
+            this._setCorner(3, radius.multiply(-1, 1));
 
             // sides
+            this._updateSideFromVertex();
+            return this;
+        }
+        _updateByFromTo() {
+            let frag = this.getByIdx(0);
+            let a = frag.getEnd(0),
+                b = frag.getEnd(2);
+            let size = b.subtract(a),
+                radius = size.divide(2);
+            this.size.set(size);
+            this.radius.set(radius);
             this._updateSideFromVertex();
             return this;
         }
@@ -139,12 +154,15 @@
             return this;
         }
         _updateSideFromVertex() {
-            let main = this.getSub("main");
+            let frag = this.getByIdx(0);
             for (let i = 0; i < 4; i++) {
-                let start = i * 6;
-                this._sides[i] = main[start + (i % 2 ? 0 : 1)];
+                let v = frag.getEnd(i);
+                this.sides[i] = v[(i % 2 ? "x" : "y")];
             }
             return this;
+        }
+        _update() {
+            this.getByIdx(0)._update();
         }
     }
     Shape.Rect = Rect;

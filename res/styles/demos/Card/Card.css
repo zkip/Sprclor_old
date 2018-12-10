@@ -2,5 +2,15 @@
     width: 260px;
     height: 400px;
     border: 1px solid #333;
+    background: #f312f5;
+    position: absolute;
+    left: 300px;
+    top: 200px;
+    user-select: none;
+    transform-origin: 20% 20% 10px;
+    transition: all .53s;
 }
 
+.Card.flip {
+    transform: rotateZ(180deg) rotateY(180deg);
+}

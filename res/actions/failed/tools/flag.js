@@ -20,7 +20,7 @@
             cross.addChild(l1);
             cross.addChild(l2);
             cross.style.set({
-                strokeColor: "#CBCBCB",
+                strokeColor: "#f38f00",
                 strokeScaling: false,
             })
             root.addChild(cross);
@@ -52,6 +52,7 @@
                 strokeScaling: false,
             })
             root.addChild(cross);
+            return this;
         }
     }
     Tool.Grid = Grid;

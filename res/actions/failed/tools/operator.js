@@ -6,6 +6,13 @@
         [1, 1],
         [1, -1],
     ];
+    let oprT = {
+        corner: "scaleByCorner",
+        bounds: "scaleBySide",
+        rotate: "rotate",
+        drag: "drag",
+        pivot: "setCenter",
+    };
     class Operator extends Tool {
         constructor() {
             super("Operator");
@@ -17,13 +24,16 @@
                 pivot: new Vec,
                 autoPivot: true,
                 backup: {
-                    matrixes: new Map(), // 操作前对象们的matrix
+                    mps: new Map,
                     start: new Vec(),
                     end: new Vec(),
                     guidesData: {},
                 },
             });
-            this.mEvent.expand("updateSegments", "updatePivot");
+            this.mEvent.expand(
+                "updateSegments", "updatePivot",
+                "scaleByCorner", "scaleBySide", "rotate", "drag", "changePivot", "transform",
+            );
             // this._record = {
             //     pivot: new Vec(),
             //     pivots: new Map(),
@@ -49,7 +59,7 @@
                         }
                         me.autoPivot = item.autoPivot;
                         me.guides.get("root", (k, v) => {
-                            v.mp.set(item.mp.getGlobal());
+                            v.mp.setAddtion(item.mp.getGlobal());
                         });
                     } else {
                         me.autoPivot = true;
@@ -227,97 +237,74 @@
             }
             return this;
         }
-        save() {
+        recordMps() {
             let me = this;
             this.items.forEach((_, item) => {
                 item.applyMatrix = false;
-                me._record.matrixes.set(item, item.matrix.clone());
-                me._record.pivots.set(item, item.vPivot.clone());
+                me.backup.mps.set(item, item.mp.clone());
+                // me.backup.pivots.set(item, item.vPivot.clone());
             });
-            me._record.pivot.set(me.pivot);
-            if (this.autoPivot) {
-                let oprT = this._record.oprT;
-                let loctIdx = this._record.loctIdx;
-                if (oprT === "rotate") {
-                    this.setPivot();
-                } else if (oprT === "scaleBySide") {
-                    let _ = loctIdx % 2,
-                        _loctIdx = loctIdx,
-                        x = 0,
-                        y = 0;
-                    _ ? (_loctIdx -= 2, y = _loctIdx) : (_loctIdx -= 1, x = -_loctIdx);
-                    this.setPivot(x, y);
-                } else if (oprT === "scaleByCorner") {
-                    let nx = this.rect.nextIdx;
-                    this.setPivot(nx(nx(loctIdx)));
-                }
-            }
-            return this;
         }
         apply() {
+            let data = this.backup.guidesData;
             let sub = this.backup.guidesData.sub;
-            console.log(sub);
+            if (sub === "corner") {
+                this.setPivot(this.guides.get("bounds").firstKey().loopIdx(data.idx, 2));
+            }
+            let fN = oprT[sub];
+            fN && this[fN]();
             // this[oprT]();
         }
         reset() {
-            console.log("reset");
+            this.backup.mps = new Map();
         }
         scaleByCorner() {
             let me = this;
-            let pivot = this.pivot;
-            let iVec = this._record.startVec.subtract(pivot);
-            let endVec = this._record.endVec;
-            let isPts = this._record.isPts;
-            if (isPts) {
-                let om = me._record.matrixes.get(item);
-                if (!om) return;
-                let m = new Matrix();
-                let nVec = endVec.subtract(pivot);
-                let retVec = new Vec();
-                let x = iVec.x,
-                    y = iVec.y;
-                if (x !== 0 && y !== 0) {
-                    retVec.set(nVec.divide(iVec));
-                } else if (x === 0 && y === 0) {} else {
-                    retVec.set(nVec.divide(x + y));
-                }
-                let abs = Math.abs;
-                let esp = 1e-45;
-                if (abs(retVec.x) < esp || abs(retVec.y) < esp) {
-                    return;
-                }
-                m.scale(retVec, pivot);
-                me.rect.matrix = om.prepended(m);
-                this.frags.forEach((_, seg) => {
-                    // 
-                });
-                this._updateBounds();
-                this._updateSegments();
-            } else {
-                this.items.forEach((_, item) => {
-                    let om = me._record.matrixes.get(item);
-                    if (!om) return;
-                    let m = new Matrix();
-                    let nVec = endVec.subtract(pivot);
-                    let retVec = new Vec();
-                    let x = iVec.x,
-                        y = iVec.y;
-                    if (x !== 0 && y !== 0) {
-                        retVec.set(nVec.divide(iVec));
-                    } else if (x === 0 && y === 0) {} else {
-                        retVec.set(nVec.divide(x + y));
-                    }
-                    let abs = Math.abs;
-                    let esp = 1e-45;
-                    if (abs(retVec.x) < esp || abs(retVec.y) < esp) {
-                        return;
-                    }
-                    m.scale(retVec, pivot);
-                    item.matrix = om.prepended(m);
-                    this._updateBounds();
-                    this._updateSegments();
-                });
-            }
+            let bStart = this.backup.start;
+            let bEnd = this.backup.end;
+            let idx = this.backup.guidesData.idx;
+            this.mEvent.execute("scaleByCorner");
+            let root = this.guides.get("root").firstKey();
+            let bounds = this.guides.get("bounds").firstKey();
+            let mp = root.mp;
+
+            this.items.forEach((_, item) => {
+                let mp = me.backup.mps.get(item);
+                if (!mp) return;
+                // let pivot = (me.pivot);
+                let start = root.mp.toLocal(bStart);
+                let end = root.mp.toLocal(bEnd);
+                let pos = root.mp.toLocal(mp.getPosition());
+                let iv = start.subtract(pos);
+                let nv = end.subtract(pos);
+                let oft = nv.divide(iv).add(new Vec(-1, -1));
+                let scl = mp.getScaling();
+                // item.mp.setScaling(scl.add(root.mp.toLocal(oft)));
+                // let pivot = item.mp.toLocal(me.pivot);
+                // let start = item.mp.toLocal(bStart);
+                // let end = item.mp.toLocal(bEnd);
+                // console.log(item.mp.get(),bStart.subtract(bEnd),start.subtract(end));
+                // let iv = start.subtract(pivot);
+                // let m = new Matrix();
+                // let nVec = end.subtract(pivot);
+                // let retVec = new Vec();
+                // let x = iv.x,
+                //     y = iv.y;
+                // if (x !== 0 && y !== 0) {
+                //     retVec.set(nVec.divide(iv));
+                // } else if (x === 0 && y === 0) {} else {
+                //     retVec.set(nVec.divide(x + y));
+                // }
+                // let abs = Math.abs;
+                // let esp = 1e-45;
+                // if (abs(retVec.x) < esp || abs(retVec.y) < esp) {
+                //     return;
+                // }
+                // m.scale(retVec, pivot);
+                // item.mp.set(om.prepended(m));
+            });
+            this._updateBounds();
+            this._updateSegments();
         }
         scaleBySide() {
             let me = this;
@@ -402,19 +389,16 @@
                 me._updateSegments();
             })
         }
-        setPivotU() {
-            let nVec = this._record.endVec;
-            this.autoPivot = false;
-            let {
-                pivot,
-            } = this;
+        setCenter() {
+            let me = this;
+            let end = this.backup.end;
+            let rmp = this.guides.get("root").firstKey().mp;
             if (this.items.len() === 1) {
                 this.items.forEach((_, item) => {
-                    item.autoPivot = false;
-                    item.vPivot.set(pivot);
+                    item.mp.setCenter(end);
+                    me.setPivot(rmp.toLocal(end));
                 })
             }
-            this.setPivot(nVec);
         }
         /* boundry position flag
             -1,-1 0,-1 1,-1
@@ -458,9 +442,9 @@
             } else if (typeof arguments[0] === "number") {
                 // corner index
                 let idx = arguments[0];
-                let x = this.rect._vertex[idx * 2],
-                    y = this.rect._vertex[idx * 2 + 1];
-                pivot.set(new Vec(x, y));
+                let bounds = this.guides.get("bounds").firstKey();
+                let corner = bounds.getCorner(idx);
+                pivot.set(corner);
             }
             this.mEvent.execute("updatePivot");
             return this;
@@ -472,15 +456,24 @@
             let root = this.keyg.get("root");
 
             let cornerScale = new Group();
-            let rotateCircle = new Circle();
+            let rotateCircle = new Guide.Circle().init(view).setRadius(25);
+            rotateCircle.isFixed = false;
             rotateCircle.style.set({
                 dashArray: [5, 5],
                 fillColor: null,
             })
-            let pivotPoint = new Guide.Circle();
-            pivotPoint.init(view);
-            rotateCircle.setRadius(25);
-            pivotPoint.setRadius(5);
+            let pivotPoint = new Guide.Circle().init(view).setRadius(5);
+            let originCross; {
+                let h1 = new Guide.Line().init(view).setRadius(5);
+                let h2 = new Guide.Line().init(view).setRadius(5).setAngle(90);
+                originCross = new Group();
+                originCross.addChild(h1);
+                originCross.addChild(h2);
+                originCross.style.set({
+                    strokeColor: "#f9f90f",
+                    strokeWidth: 1,
+                });
+            }
             let bounds = new Rect();
             bounds.style.set({
                 dashArray: [5, 5],
@@ -513,12 +506,13 @@
             let boundsG = bounds;
             this.mEvent.add("updateSegments", () => {
                 let bounds = me.bounds;
+                let radius = root.mp.toGlobal(bounds.topLeft).subtract(root.mp.toGlobal(bounds.bottomRight)).divide(2);
                 boundsG.fromTo(bounds.topLeft, bounds.bottomRight);
                 drag.fromTo(bounds.topLeft, bounds.bottomRight);
                 for (let i = 0; i < 4; i++) {
                     csG[i].setCenter(boundsG.getCorner(i));
                 }
-                rotateCircle.setRadius(boundsG.radius.length * 1.2);
+                rotateCircle.setRadius(radius.length * 1.2);
                 me.mEvent.execute("updatePivot");
             })
             this.hiddenGuides();
@@ -527,10 +521,16 @@
             root.addChild(bounds);
             root.addChild(rotateCircle);
             root.addChild(cornerScale);
+            root.addChild(originCross);
             root.addChild(pivotPoint);
 
             root.strokeScaling = false;
             root.strokeColor = "red";
+            pivotPoint.style.set({
+                strokeColor: "rgba(200,100,50,0.3)",
+                fillColor: "rgba(200,100,50,0.7)",
+                strokeWidth: 1,
+            })
 
             this.setGuidesData(bounds, "bounds");
             this.setGuidesData(root, "root");
@@ -592,6 +592,23 @@
             return this;
         }
         _updateSegments() {
+            let me = this;
+            // if (this.items.len() === 1) {
+            //     this.items.forEach((_, item) => {
+            //         me.guides.get("root", (k, v) => {
+            //             v.mp.setAddtion(item.mp.getGlobal());
+            //         });
+            //     })
+            // } else {
+            //     me.guides.get("root", (k, v) => {
+            //         v.mp.reset();
+            //     });
+            //     // this.items.forEach((_, item) => {
+            //     //     me.guides.get("root", (k, v) => {
+            //     //         v.mp.setAddtion(item.mp.getGlobal());
+            //     //     });
+            //     // })
+            // }
             this.mEvent.execute("updateSegments");
         }
     }

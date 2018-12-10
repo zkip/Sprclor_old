@@ -57,7 +57,7 @@ class Selection {
         let v = this.v_items[idx];
         return this._rm(k, v, idx);
     }
-    rmByValue(...vs) {
+    rmByVal(...vs) {
         let me = this;
         vs.forEach(v => {
             let idx = this.v_idx.get(v);
@@ -66,7 +66,7 @@ class Selection {
         })
         return this;
     }
-    rmByIndex(idx) {
+    rmByIdx(idx) {
         let k = this.k_items[idx];
         let v = this.v_items[idx];
         return this._rm(k, v, idx);
@@ -92,14 +92,14 @@ class Selection {
         let idx = this.k_idx.get(k);
         return this.v_items[idx];
     }
-    getKeyByValue(v) {
+    getKeyByVal(v) {
         let idx = this.v_idx.get(v);
         return this.k_items[idx];
     }
-    getByIndex(idx) {
+    getByIdx(idx) {
         return this.v_items[idx];
     }
-    getKeyByIndex(idx) {
+    getKeyByIdx(idx) {
         return this.k_items[idx];
     }
     // : bool
@@ -126,19 +126,11 @@ class Selection {
     getAllKey() {
         return this.k_items;
     }
-    _updateIdx(start, end) {
-        end = typeof end === "number" ? end : this.len() - 1;
-        let max, min;
-        start > end ?
-            (max = start, min = end) :
-            (max = end, min = start);
-        max = max >= this.len() ? max - 1 : max;
-        min = min < 0 ? 0 : min;
-        for (let i = min; i <= max; i++) {
-            this.k_idx.set(this.k_items[i], i);
-            this.v_idx.set(this.v_items[i], i);
-        }
-        return this;
+    getIdx(v) {
+        return this.v_idx.get(v);
+    }
+    getKeyIdx(k) {
+        return this.k_idx.get(k);
     }
     clear() {
         this.k_items = [];
@@ -163,7 +155,22 @@ class Selection {
         });
         return this;
     }
+    _updateIdx(start, end) {
+        end = typeof end === "number" ? end : this.len() - 1;
+        let max, min;
+        start > end ?
+            (max = start, min = end) :
+            (max = end, min = start);
+        max = max >= this.len() ? max - 1 : max;
+        min = min < 0 ? 0 : min;
+        for (let i = min; i <= max; i++) {
+            this.k_idx.set(this.k_items[i], i);
+            this.v_idx.set(this.v_items[i], i);
+        }
+        return this;
+    }
 }
+
 Selection.eventTypeList = {
     addAfter: true,
     rmAfter: true,
@@ -175,10 +182,20 @@ Selection.eventTypeList = {
 };
 class MEvent {
     constructor(...eTypes) {
-        this.fns = new Map();
-        this.eTypes = new Map();
-        this.isPrevent = new Map();
+        assign(this, {
+            fns: new Map(),
+            eTypes: new Map(),
+            isPrevent: new Map(),
+        });
         this.expand(...eTypes);
+    }
+    transmit(ev) { // 转发所有相同的事件
+        let me = this;
+        ev.eTypes.forEach((_, type) => {
+            if (me.eTypes.get(type)) {
+                me.add(type, (...arg) => ev.execute(type, ...arg));
+            }
+        })
     }
     _okType(et) {
         return this.eTypes.get(et);
@@ -221,46 +238,48 @@ class MEvent {
 class SelectionEv extends Selection {
     constructor() {
         super();
-        this.et = new MEvent(
-            "add-after", "rm-after", "move-after",
-            "add-before", "rm-before", "move-before", "clear-before"
-        );
+        assign(this, {
+            ev: new MEvent(
+                "add-after", "rm-after", "move-after",
+                "add-before", "rm-before", "move-before", "clear-before"
+            ),
+        })
     }
     on(et, fn) {
-        this.et.add(et, fn);
+        this.ev.add(et, fn);
         return this;
     }
     add(k, v, ...idx) {
         if (this.exist(v) || this.existByKey(k)) return this;
         if (!(k instanceof Selection)) {
-            if (this.et.execute("add-before", k, v, ...idx).getIsPrevent("add-before")) return;
+            if (this.ev.execute("add-before", k, v, ...idx).getIsPrevent("add-before")) return;
         }
         let ret = Selection.prototype.add.apply(this, arguments);
         if (!(k instanceof Selection)) {
-            this.et.execute("add-after", k, v, ...idx);
+            this.ev.execute("add-after", k, v, ...idx);
         }
         return ret;
     }
     _rm(k, v, idx) {
         if (!this.exist(v) && !this.existByKey(k)) return this;
         if (!(k instanceof Selection)) {
-            if (this.et.execute("rm-before", k, v, idx).getIsPrevent("rm-before")) return;
+            if (this.ev.execute("rm-before", k, v, idx).getIsPrevent("rm-before")) return;
         }
         let ret = Selection.prototype._rm.apply(this, arguments);
         if (!(k instanceof Selection)) {
-            this.et.execute("rm-after", k, v, idx);
+            this.ev.execute("rm-after", k, v, idx);
         }
         return ret;
     }
     move(idx, dIdx) {
-        if (this.et.execute("move-before", idx, dIdx).getIsPrevent("move-before")) return;
+        if (this.ev.execute("move-before", idx, dIdx).getIsPrevent("move-before")) return;
         let ret = Selection.prototype.move.apply(this, arguments);
-        this.et.execute("move-after", idx, dIdx);
+        this.ev.execute("move-after", idx, dIdx);
         return ret;
     }
     clear() {
         if (this.len() === 0) return this;
-        if (this.et.execute("clear-before").getIsPrevent("clear-before")) return;
+        if (this.ev.execute("clear-before").getIsPrevent("clear-before")) return;
         let ret = Selection.prototype.clear.apply(this, arguments);
         return ret;
     }

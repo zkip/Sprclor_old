@@ -4,6 +4,7 @@ let Group; {
         constructor(...arg) {
             super(...arg);
             assign(this, new GObj(this));
+            this.shape = null;
         }
         setTopParent(parent) {
             this.children.forEach(v => {
@@ -21,14 +22,17 @@ let Group; {
             } else {
                 paper.Group.prototype.addChild.call(this, child);
             }
-            this.mp.center.set(this.getResetBounds().center);
             this.setTopParent(this);
-            child._updateSegments && child._updateSegments();
+            child._update && child._update();
             return this;
         }
-        // _draw(ctx, param, viewMatrix, strokeMatrix) {
-        //     paper.Group.prototype._draw.call(this, ctx, param, viewMatrix, strokeMatrix);
-        // }
+        _update() {
+            console.log("object");
+            this.children.forEach(v => {
+                v._update && v._update();
+            })
+            return this;
+        }
     }
     assign(Group, GObj, "extend");
 }

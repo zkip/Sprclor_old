@@ -56,6 +56,7 @@ class Tool extends Inster {
         view.addChildren(root, "opr");
         this.initGuides();
         this.init();
+        return this;
     }
     // @
     initGuides() {}
@@ -91,134 +92,149 @@ class Tool extends Inster {
 }
 
 /*
-    GObj的坐标空间由mp决定，自身的所有点作为自己的子级，而children都是子空间
+    # GObj 图形对象
+        ## 形状
+            图形对象的形状使用向量的方式进行表达，origin是起点，vertex扁平存储所有的控制点
+            使用无关位置信息的一组向量集来表达一个形状
+            e.g
+                [
+                    -5,-5,
+                    5,-5,
+                    5,5,
+                    -5,5,
+                ]
+                上面会呈现一个正方形
 */
-class GObj {
-    constructor(owner) {
-        assign(this, {
-            coordMatrix: new Matrix(),
-            autoComputed: false,
-            autoPivot: true,
-            mPivot: new Vec,
-            topParent: null,
-            applyMatrix: false,
-            canBreak: true,
-            matrix: new Matrix,
-            mp: new MatrixProxy(owner),
-        });
-    }
-    setPivot(v) {
-        this.mPivot.set(v);
-        return this;
-    }
-    getPivot() {
-        return this.mPivot;
-    }
-    setTopParent(parent) {
-        this.topParent = parent;
-        return this;
-    }
-    getResetBounds() {
-        let bounds = this._getBounds(this.mp.getGlobal().inverted(), {
-            handle: false,
-            stroke: false,
-        });
-        return bounds.rect;
-    }
-    globalToLocal(v) {
-        let ret = new Vec();
-        let dest = [];
-        let m = this.mp.getGlobal();
-        // m = m.invert();
-        m._transformCoordinates([v.x, v.y], dest, 1);
-        ret.set(dest[0], dest[1]);
-        return ret;
-    }
-    // getCoordMatrix() {
-    //     let m = this.coordMatrix.clone();
-    //     if (this.parent) {
-    //         let fn = this.parent.getCoordMatrix;
-    //         fn && (m.append(fn.call(this.parent)));
-    //     }
-    //     return m;
-    // }
-    // getGlobalMatrixM() {
-    //     let m = new Matrix();
-    //     m.append(this.globalMatrix);
-    //     m.append(this.getCoordMatrix());
-    //     return m;
-    // }
-    getGlobalBounds() {
-        let m = new Matrix();
-        m.append(this.globalMatrix);
-        m.append(this.coordMatrix);
-        return this._getBounds(m, {
-            handle: false,
-            stroke: false,
-        }).rect;
-    }
-    _updateSegments() {
-        let me = this;
-        this.children.forEach(v => {
-            v._updateSegments && v._updateSegments();
-        })
-        return this;
+let GObj; {
+    GObj = class {
+        constructor(owner) {
+            assign(this, {
+                shape: new Shape,
+                canApplyMatrix: true, // 是否允许被父级以及自身的变换矩阵影响
+                autoPivot: true,
+                topParent: null,
+                bfVertex: new Map(),
+                mp: new MatrixProxy(owner),
+                getOwner: () => owner,
+            });
+            this.setShape(this.shape);
+        }
+        setCenter() {
+            let v = Vec.read(arguments);
+            let pos = this.mp.getParent().toLocal(v);
+            this.mp.position.set(v);
+            this.mp.setTranslation(pos.negate());
+            return this;
+        }
+        setShape(shape) {
+            let me = this;
+            this.shape = shape;
+            this.shape.on("updated", (idx) => {
+                me.getOwner()._update(idx);
+            })
+            return this;
+        }
+        setTopParent(parent) {
+            this.topParent = parent;
+            return this;
+        }
+        getResetBounds() {
+            let bounds = this._getBounds(this.mp.getGlobal().inverted(), {
+                handle: false,
+                stroke: false,
+            });
+            return bounds.rect;
+        }
+        getGlobalBounds() {
+            return this._getBounds(new Matrix(), {
+                handle: false,
+                stroke: false,
+            }).rect;
+        }
+        _update() {
+            this.getOwner()._update();
+            return this;
+        }
     }
 }
 
 class MatrixProxy {
     constructor(owner) {
-        let matrix = new Matrix();
+        let addtion = new Matrix();
+        let base = new Matrix();
         assign(this, {
             getOwner: () => owner,
             // get/getLocal
-            get: () => matrix,
-            position: new Vec,
+            get: () => base.appended(addtion),
+            getBase: () => base,
+            getAddtion: () => addtion,
+            translation: new Vec,
             rotation: 0,
             scaling: new Vec(1, 1),
-            center: new Vec,
+            position: new Vec,
+            _bk: null,
         });
     }
-    set(...arg) {
-        this.get().set(...arg);
-        this.getOwner()._updateSegments();
+    setBase(...arg) {
+        this.getBase().set(...arg);
+        this.getOwner()._update();
+        return this;
+    }
+    setAddtion(...arg) {
+        this.getAddtion().set(...arg);
+        this.getOwner()._update();
         return this;
     }
     getGlobal() {
-        let owner = this.getOwner();
-        let m, parent = owner.parent;
-        if (parent && parent.mp) {
-            m = parent.mp.getGlobal();
-        } else {
-            m = new Matrix();
-        }
+        let parent = this.getParent();
+        let m = new Matrix;
+        parent && m.append(parent.getGlobal());
         m.append(this.get());
         return m;
     }
+    getParent() {
+        let owner = this.getOwner();
+        return owner && owner.parent && owner.parent.mp;
+    }
 
+    apply() {
+        // 
+        return this;
+    }
     // Local参考至父级空间，参考点为ResetBounds的center
     _updateLocal() {
-        let m = this.parent ? this.parent.getGlobal() : new Matrix();
-        m.translate(this.center);
+        let m = new Matrix();
+        m.translate(this.position);
         m.rotate(this.rotation);
         m.scale(this.scaling);
-        m.translate(this.position);
-        this.get().set(m);
-        this.getOwner()._updateSegments();
+        m.translate(this.translation);
+        this.getBase().set(m);
+        this.getOwner()._update();
     }
     setCenter() {
         let v = Vec.read(arguments);
-        this.center.set(v);
+        let pos = v.subtract(this.position);
+        this.position.set(v);
+        this.translation.set(new Vec);
+        this.getAddtion().translate(pos.negate());
         this._updateLocal();
         return this;
     }
-    getCenter() {
-        return this.center;
+    setTranslation() {
+        let v = Vec.read(arguments);
+        this.translation.set(v);
+        this._updateLocal();
+        this._bk && (this._bk = null);
+        return this;
+    }
+    getTranslation() {
+        return this.translation;
     }
     setPosition() {
         let v = Vec.read(arguments);
         this.position.set(v);
         this._updateLocal();
+        this._bk && (this._bk = null);
         return this;
     }
     getPosition() {
@@ -227,6 +243,7 @@ class MatrixProxy {
     setRotation(r) {
         this.rotation = r;
         this._updateLocal();
+        this._bk && (this._bk = null);
         return this;
     }
     getRotation() {
@@ -236,50 +253,51 @@ class MatrixProxy {
         let v = Vec.read(arguments);
         this.scaling.set(v);
         this._updateLocal();
+        this._bk && (this._bk = null);
         return this;
     }
-    getScaing() {
+    getScaling() {
         return this.scaling;
     }
 
 
     // 本级坐标空间影响自己的子级
     scale(...arg) {
-        this.get().scale(...arg);
-        this.getOwner()._updateSegments();
+        this.getAddtion().scale(...arg);
+        this.getOwner()._update();
         return this;
     }
     translate(...arg) {
-        this.get().translate(...arg);
-        this.getOwner()._updateSegments();
+        this.getAddtion().translate(...arg);
+        this.getOwner()._update();
         return this;
     }
     rotate(...arg) {
-        this.get().rotate(...arg);
-        this.getOwner()._updateSegments();
+        this.getAddtion().rotate(...arg);
+        this.getOwner()._update();
         return this;
     }
     skew(...arg) {
-        this.get().skew(...arg);
-        this.getOwner()._updateSegments();
+        this.getAddtion().skew(...arg);
+        this.getOwner()._update();
         return this;
     }
     shear(...arg) {
-        this.get().shear(...arg);
-        this.getOwner()._updateSegments();
+        this.getAddtion().shear(...arg);
+        this.getOwner()._update();
         return this;
     }
 
     append(...arg) {
-        this.get().append(...arg);
+        this.getAddtion().append(...arg);
         return this;
     }
     prepend(...arg) {
-        this.get().prepend(...arg);
+        this.getAddtion().prepend(...arg);
         return this;
     }
     invert(...arg) {
-        this.get().invert(...arg);
+        this.getAddtion().invert(...arg);
         return this;
     }
 
@@ -296,29 +314,54 @@ class MatrixProxy {
     decompose() {
         return this.get().decompose();
     }
-    getScaling() {
+    getDeScaling() {
         return this.get().getScaling();
     }
-    getRotation() {
+    getDeRotation() {
         return this.get().getRotation();
     }
-    getTranslation() {
+    getDeTranslation() {
         return this.get().getTranslation();
     }
 
     reset() {
-        this.get().reset();
-        this.getOwner()._updateSegments();
+        // this.position.set(new Vec);
+        this.scaling.set(new Vec(1, 1));
+        this.translation.set(new Vec);
+        this.rotation = 0;
+        this.getBase().reset();
+        this.getAddtion().reset();
+        this.getOwner()._update();
         return this;
     }
 
-    toLocal(v) {
+    toGlobal() {
+        let v = Vec.read(arguments);
         let ret = new Vec();
         let dest = [];
         let m = this.getGlobal();
         m._transformCoordinates([v.x, v.y], dest, 1);
         ret.set(dest[0], dest[1]);
         return ret;
+    }
+    toLocal() {
+        let v = Vec.read(arguments);
+        let ret = new Vec();
+        let dest = [];
+        let m = this.getGlobal().inverted();
+        m._transformCoordinates([v.x, v.y], dest, 1);
+        ret.set(dest[0], dest[1]);
+        return ret;
+    }
+
+    clone(owner) {
+        let mp = new MatrixProxy(this.getOwner());
+        mp.translation.set(this.translation)
+        mp.rotation = this.rotation;
+        mp.position.set(this.position);
+        mp.scaling.set(this.scaling);
+        mp._updateLocal();
+        return mp;
     }
 }
 
@@ -327,11 +370,13 @@ class Guide {
         assign(this, {
             uiView: null,
             preValue: new Map(),
+            isFixed: true,
+            ev: new MEvent("viewScaling"),
         });
     }
     init(v) {
-        let me = this;
         this.uiView = v;
-        this.uiView.mEvent.add("viewScaling", s => me.onViewScaling(s));
+        this.uiView.mEvent.transmit(this.ev);
+        return this;
     }
 }
